@@ -94,21 +94,20 @@ func validate(readers []io.ReadSeeker, out *bytes.Buffer, extra []js.Value) erro
 }
 
 func encrypt(readers []io.ReadSeeker, out *bytes.Buffer, extra []js.Value) error {
-	conf := baseConf()
-	// if extra[0].IsNull() || extra[0].IsUndefined() {
-	// 	js.Global().Get("console").Call("error", "problemas")
-	// 	return nil
-	// }
 	viewPass := extra[0].String()
-	owberPass := extra[1].String()
+	ownerPass := extra[1].String()
+	return Rencrypt(readers[0], out, viewPass, nil, ownerPass, nil)
+}
+
+func Rencrypt(readers io.ReadSeeker, out *bytes.Buffer, viewPass string, newviewPass *string, ownerPass string, newOwnerPass *string) error {
+	conf := baseConf()
 	conf.UserPW = viewPass
-	conf.UserPWNew = &viewPass
-	conf.OwnerPW = owberPass
-	conf.OwnerPWNew = &owberPass
-	err := api.Encrypt(readers[0], out, conf)
-	if err != nil {
-		js.Global().Get("console").Call("error", "problemas")
-		return err
+	conf.OwnerPW = ownerPass
+
+	if newOwnerPass != nil && newviewPass != nil {
+		conf.UserPWNew = newviewPass
+		conf.OwnerPWNew = newOwnerPass
 	}
-	return nil
+
+	return api.Encrypt(readers, out, conf)
 }

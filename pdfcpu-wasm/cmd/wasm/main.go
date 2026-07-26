@@ -4,12 +4,14 @@ import (
 	"syscall/js"
 )
 
+type Api struct {
+	Name     string
+	ArgCount int
+	Fn       operation
+}
+
 func main() {
-	var apis = []struct {
-		Name string
-		ArgCount   int
-		Fn   operation
-	}{
+	apis := []Api{
 		{"pdfcpuMerge", 2, merge},
 		{"pdfcpuRotate", 1, rotate},
 		{"pdfcpuOptimize", 1, optimize},
