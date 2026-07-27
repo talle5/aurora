@@ -7,7 +7,7 @@ import (
 type Api struct {
 	Name     string
 	ArgCount int
-	Fn       operation
+	Fn       envelopeOperation
 }
 
 func main() {
