@@ -3,21 +3,11 @@ import {
   useToolOperation,
   defineSingleFileTool,
 } from "@app/hooks/tools/shared/useToolOperation";
-import {
-  fileOnlyMapping,
-  objectToFormData,
-  type ToolEndpoint,
-} from "@app/hooks/tools/shared/toolApiMapping";
 import { createStandardErrorHandler } from "@app/utils/toolErrorHandler";
 import {
   SingleLargePageParameters,
   defaultParameters,
 } from "@app/hooks/tools/singleLargePage/useSingleLargePageParameters";
-
-const ENDPOINT = "/api/v1/general/pdf-to-single-page" satisfies ToolEndpoint;
-
-// Single large page takes only a file; there are no request parameters to map.
-const { toApiParams, fromApiParams } = fileOnlyMapping();
 
 // Static function that can be used by both the hook and automation executor
 export const buildSingleLargePageFormData = (

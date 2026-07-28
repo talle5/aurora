@@ -17,7 +17,8 @@ const customProcessor = async (
   parameters: RotateParameters,
   files: File[],
 ): Promise<CustomProcessorResult> => {
-  const file = await invoke("rotate", files, normalizeAngle(parameters.angle))
+  normalizeAngle(parameters.angle)
+  const file = await invoke("rotate", files, parameters)
   const resultFile = new File([file as BlobPart], "merged_output.pdf", {
     type: "application/pdf"
   });

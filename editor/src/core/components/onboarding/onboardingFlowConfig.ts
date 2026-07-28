@@ -4,7 +4,6 @@ import DesktopInstallSlide from "@app/components/onboarding/slides/DesktopInstal
 import SecurityCheckSlide from "@app/components/onboarding/slides/SecurityCheckSlide";
 import PlanOverviewSlide from "@app/components/onboarding/slides/PlanOverviewSlide";
 import ServerLicenseSlide from "@app/components/onboarding/slides/ServerLicenseSlide";
-import FirstLoginSlide from "@app/components/onboarding/slides/FirstLoginSlide";
 import TourOverviewSlide from "@app/components/onboarding/slides/TourOverviewSlide";
 import AnalyticsChoiceSlide from "@app/components/onboarding/slides/AnalyticsChoiceSlide";
 import MFASetupSlide from "@app/components/onboarding/slides/MFASetupSlide";
@@ -19,7 +18,6 @@ import type {
 export type { OSOption };
 
 export type SlideId =
-  | "first-login"
   | "welcome"
   | "processor-intro"
   | "desktop-install"
@@ -91,21 +89,6 @@ export type SlideDefinition = SlideDefinitionBase<
 >;
 
 export const SLIDE_DEFINITIONS: Record<SlideId, SlideDefinition> = {
-  "first-login": {
-    id: "first-login",
-    createSlide: ({
-      firstLoginUsername,
-      onPasswordChanged,
-      usingDefaultCredentials,
-    }) =>
-      FirstLoginSlide({
-        username: firstLoginUsername || "",
-        onPasswordChanged: onPasswordChanged || (() => {}),
-        usingDefaultCredentials: usingDefaultCredentials || false,
-      }),
-    hero: { type: "lock" },
-    buttons: [], // Form has its own submit button
-  },
   welcome: {
     id: "welcome",
     createSlide: () => WelcomeSlide(),

@@ -71,7 +71,7 @@ func bytesToReaders(files [][]byte) []io.ReadSeeker {
 }
 
 func wrapOperation(name string, minFiles int, fn envelopeOperation) js.Func {
-	return js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	return js.FuncOf(func(this js.Value, args []js.Value) any {
 		return jsPromise(func(resolve, reject js.Value) {
 			defer func() {
 				if r := recover(); r != nil {
@@ -79,37 +79,42 @@ func wrapOperation(name string, minFiles int, fn envelopeOperation) js.Func {
 				}
 			}()
 
-			if len(args) < 1 {
-				reject.Invoke(fmt.Sprintf("%s: esperado 1 argumento (envelope)", name))
-				return
+			execute := func() ([]byte, error) {
+				if len(args) < 1 {
+					return nil, fmt.Errorf("esperado 1 argumento (envelope)")
+				}
+
+				jsBuf := args[0]
+				rawEnvelope := make([]byte, jsBuf.Get("length").Int())
+				js.CopyBytesToGo(rawEnvelope, jsBuf)
+
+				envelope, err := decodeEnvelope(rawEnvelope)
+				if err != nil {
+					return nil, err
+				}
+
+				if len(envelope.Files) < minFiles {
+					return nil, fmt.Errorf("são necessários pelo menos %d arquivo(s)", minFiles)
+				}
+
+				var out bytes.Buffer 
+				
+				err = fn(bytesToReaders(envelope.Files), envelope.Params, &out)
+				if err != nil {
+					return nil, fmt.Errorf("falhou: %v", err)
+				}
+
+				return encodeEnvelope(out.Bytes()), nil
 			}
 
-			jsBuf := args[0]
-			length := jsBuf.Get("length").Int()
-			rawEnvelope := make([]byte, length)
-			js.CopyBytesToGo(rawEnvelope, jsBuf)
-
-			envelope, err := decodeEnvelope(rawEnvelope)
+			outBytes, err := execute()
 			if err != nil {
 				reject.Invoke(fmt.Sprintf("%s: %v", name, err))
 				return
 			}
 
-			if len(envelope.Files) < minFiles {
-				reject.Invoke(fmt.Sprintf("%s: são necessários pelo menos %d arquivo(s)", name, minFiles))
-				return
-			}
-			readers := bytesToReaders(envelope.Files)
-			out := bytes.NewBuffer(make([]byte, 0))
-			err = fn(readers, envelope.Params, out)
-			if err != nil {
-				reject.Invoke(fmt.Sprintf("%s falhou: %v", name, err))
-				return
-			}
-
-			outEnvelope := encodeEnvelope(out.Bytes())
-			jsResult := js.Global().Get("Uint8Array").New(len(outEnvelope))
-			js.CopyBytesToJS(jsResult, outEnvelope)
+			jsResult := js.Global().Get("Uint8Array").New(len(outBytes))
+			js.CopyBytesToJS(jsResult, outBytes)
 			resolve.Invoke(jsResult)
 		})
 	})

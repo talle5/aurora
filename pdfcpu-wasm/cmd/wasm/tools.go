@@ -24,6 +24,7 @@ func rotate(readers []io.ReadSeeker, params map[string]interface{}, out *bytes.B
 	if rotation%90 != 0 {
 		return fmt.Errorf("rotação deve ser múltiplo de 90, recebeu %d", rotation)
 	}
+
 	return api.Rotate(readers[0], out, rotation, nil, baseConf())
 }
 
@@ -101,8 +102,8 @@ func validate(readers []io.ReadSeeker, params map[string]interface{}, out *bytes
 }
 
 func encrypt(readers []io.ReadSeeker, params map[string]interface{}, out *bytes.Buffer) error {
-	viewPass, _ := params["viewPass"].(string)
-	ownerPass, _ := params["ownerPass"].(string)
+	viewPass, _ := params["password"].(string)
+	ownerPass, _ := params["ownerPassword"].(string)
 	return Rencrypt(readers[0], out, viewPass, nil, ownerPass, nil)
 }
 
@@ -117,4 +118,9 @@ func Rencrypt(readers io.ReadSeeker, out *bytes.Buffer, viewPass string, newview
 	}
 
 	return api.Encrypt(readers, out, conf)
+}
+
+func UnlockForm(readers []io.ReadSeeker, params map[string]interface{}, out *bytes.Buffer) error {
+	conf := baseConf()
+	return api.UnlockFormFields(readers[0], out, nil, conf)
 }

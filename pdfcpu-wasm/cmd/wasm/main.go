@@ -18,11 +18,21 @@ func main() {
 		{"pdfcpuCrop", 1, crop},
 		{"pdfcpuValidateSignatures", 1, validate},
 		{"pdfcpuEncrypt", 1, encrypt},
+		{"pdfcpuUnlockForm", 1, UnlockForm},
 	}
-	js.Global().Get("console").Call("log", "🚀 WASM RECOMPILADO E CARREGADO COM SUCESSO!")
+	
+	manifest := make(map[string]interface{})
 
 	for _, value := range apis {
+		manifest[value.Name] = value.ArgCount
 		js.Global().Set(value.Name, wrapOperation(value.Name, value.ArgCount, value.Fn))
 	}
+
+	js.Global().Set("pdfcpuGetManifest", js.FuncOf(func(this js.Value, args []js.Value) any {
+		return manifest
+	}))
+
+	js.Global().Get("console").Call("log", "🚀 WASM RECOMPILADO E CARREGADO COM SUCESSO!")
+
 	select {}
 }

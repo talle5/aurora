@@ -1,37 +1,29 @@
 import { useTranslation } from "react-i18next";
 import {
   useToolOperation,
-  defineSingleFileTool,
 } from "@app/hooks/tools/shared/useToolOperation";
-import {
-  fileOnlyMapping,
-  objectToFormData,
-  type ToolEndpoint,
-} from "@app/hooks/tools/shared/toolApiMapping";
 import { createStandardErrorHandler } from "@app/utils/toolErrorHandler";
 import {
   UnlockPdfFormsParameters,
   defaultParameters,
 } from "@app/hooks/tools/unlockPdfForms/useUnlockPdfFormsParameters";
+import { CustomProcessorResult, defineCustomTool } from "@app/tools/shared/toolOperationTypes";
+import { invoke } from "@app/brain/pdf-cpu";
 
-const ENDPOINT = "/api/v1/misc/unlock-pdf-forms" satisfies ToolEndpoint;
-
-// Unlock PDF forms takes only a file; there are no request parameters to map.
-const { toApiParams, fromApiParams } = fileOnlyMapping();
-
-// Static function that can be used by both the hook and automation executor
-export const buildUnlockPdfFormsFormData = (
+export const customProcessor = async (
   _parameters: UnlockPdfFormsParameters,
-  file: File,
-): FormData => objectToFormData(toApiParams(), { fileInput: file });
+  files: File[]): Promise<CustomProcessorResult> => {
+  const resultData = await invoke("unlockForm", files);
+  const file = new File([resultData as BlobPart], "merged_output.pdf", {
+    type: "application/pdf"
+  });
+  return { files: [file], consumedAllInputs: true };
+};
 
-// Static configuration object
-export const unlockPdfFormsOperationConfig = defineSingleFileTool({
-  buildFormData: buildUnlockPdfFormsFormData,
-  toApiParams,
-  fromApiParams,
-  operationType: "unlockPDFForms",
-  endpoint: ENDPOINT,
+export const unlockPdfFormsOperationConfig = defineCustomTool({
+  customProcessor,
+  operationType: "addPassword",
+  filePrefix: "addPassword_",
   defaultParameters,
 });
 

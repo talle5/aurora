@@ -10,12 +10,13 @@ import {
   defaultParameters,
 } from "@app/hooks/tools/addPassword/useAddPasswordParameters";
 import { invoke } from "@app/brain/pdf-cpu";
+
 const customProcessor = async (
   parameters: AddPasswordParameters,
   files: File[],
 ): Promise<CustomProcessorResult> => {
   console.log(parameters)
-  const resultData = await invoke("encrypt", files,parameters.password,parameters.ownerPassword);
+  const resultData = await invoke("encrypt", files,parameters);
   const file = new File([resultData as BlobPart], "merged_output.pdf", {
     type: "application/pdf"
   });
