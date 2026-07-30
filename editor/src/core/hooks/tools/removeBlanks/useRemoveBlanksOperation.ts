@@ -1,65 +1,30 @@
-import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  useToolOperation,
-  defineSingleFileTool,
-} from "@app/hooks/tools/shared/useToolOperation";
-
+import { useToolOperation } from "@app/hooks/tools/shared/useToolOperation";
 import { createStandardErrorHandler } from "@app/utils/toolErrorHandler";
-import {
-  RemoveBlanksParameters,
-  defaultParameters,
-} from "@app/hooks/tools/removeBlanks/useRemoveBlanksParameters";
-import { useToolResources } from "@app/hooks/tools/shared/useToolResources";
+import { CustomProcessorResult, defineCustomTool } from "@app/tools/shared/toolOperationTypes";
+import { RemoveBlanksParameters } from "@app/hooks/tools/removeBlanks/useRemoveBlanksParameters";
 
-const ENDPOINT = "/api/v1/misc/remove-blanks" satisfies ToolEndpoint;
-type RemoveBlanksApiParams = ToolApiParams[typeof ENDPOINT];
+// BYPASS: operação ainda não portada para o motor local (WASM).
+// Devolve o arquivo original sem alteração, só pra não quebrar o fluxo da UI.
+const customProcessor = async (
+  _parameters: RemoveBlanksParameters,
+  files: File[],
+): Promise<CustomProcessorResult> => {
+  console.warn('[removeBlanks] operação ainda não implementada localmente — bypass ativo, arquivo devolvido sem alteração');
+  return { files, consumedAllInputs: true };
+};
 
-// Note: includeBlankPages is not sent to backend as it always returns both files in a ZIP
-export const removeBlanksToApiParams = (
-  parameters: RemoveBlanksParameters,
-): RemoveBlanksApiParams => ({
-  threshold: parameters.threshold,
-  whitePercent: parameters.whitePercent,
-});
-
-export const removeBlanksFromApiParams = (
-  apiParams: RemoveBlanksApiParams,
-): Partial<RemoveBlanksParameters> => ({
-  threshold: apiParams.threshold,
-  whitePercent: apiParams.whitePercent,
-});
-
-export const buildRemoveBlanksFormData = (
-  parameters: RemoveBlanksParameters,
-  file: File,
-): FormData =>
-  objectToFormData(removeBlanksToApiParams(parameters), { fileInput: file });
-
-export const removeBlanksOperationConfig = defineSingleFileTool({
-  buildFormData: buildRemoveBlanksFormData,
-  toApiParams: removeBlanksToApiParams,
-  fromApiParams: removeBlanksFromApiParams,
+export const removeBlanksOperationConfig = defineCustomTool({
+  customProcessor,
   operationType: "removeBlanks",
-  endpoint: ENDPOINT,
-  defaultParameters,
+  filePrefix: "removeBlanks_",
 });
 
 export const useRemoveBlanksOperation = () => {
   const { t } = useTranslation();
-  const { extractZipFiles } = useToolResources();
-
-  const responseHandler = useCallback(
-    async (blob: Blob): Promise<File[]> => {
-      // Backend always returns a ZIP file containing the processed PDFs
-      return await extractZipFiles(blob);
-    },
-    [extractZipFiles],
-  );
 
   return useToolOperation<RemoveBlanksParameters>({
     ...removeBlanksOperationConfig,
-    responseHandler,
     getErrorMessage: createStandardErrorHandler(
       t("removeBlanks.error.failed", "Failed to remove blank pages"),
     ),

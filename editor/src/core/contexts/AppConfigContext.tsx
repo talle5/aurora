@@ -7,7 +7,6 @@ import React, {
   ReactNode,
   useCallback,
 } from "react";
-import apiClient from "@app/services/apiClient";
 import { getSimulatedAppConfig } from "@app/testing/serverExperienceSimulations";
 import type { AppConfig, AppConfigBootstrapMode } from "@app/types/appConfig";
 import { useJwtConfigSync } from "@app/hooks/useJwtConfigSync";

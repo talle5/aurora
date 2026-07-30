@@ -1,5 +1,4 @@
 import { useCallback, useMemo } from "react";
-import apiClient from "@app/services/apiClient";
 import { useTranslation } from "react-i18next";
 import {
   ConvertParameters,
@@ -254,9 +253,7 @@ export const convertProcessor = async (
     for (const file of selectedFiles) {
       try {
         const formData = buildConvertFormData(parameters, [file]);
-        const response = await apiClient.post(endpoint, formData, {
-          responseType: "blob",
-        });
+        const response = {} as any
 
         const convertedFile = createFileFromResponse(
           response.data,
@@ -273,9 +270,7 @@ export const convertProcessor = async (
   } else {
     // Batch processing for simple cases (image→PDF combine)
     const formData = buildConvertFormData(parameters, selectedFiles);
-    const response = await apiClient.post(endpoint, formData, {
-      responseType: "blob",
-    });
+    const response = {} as any
 
     const baseFilename =
       selectedFiles.length === 1 ? selectedFiles[0].name : "converted_files";

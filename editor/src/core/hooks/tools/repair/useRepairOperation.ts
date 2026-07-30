@@ -1,32 +1,23 @@
 import { useTranslation } from "react-i18next";
-import {
-  useToolOperation,
-  defineSingleFileTool,
-} from "@app/hooks/tools/shared/useToolOperation";
+import { useToolOperation } from "@app/hooks/tools/shared/useToolOperation";
 import { createStandardErrorHandler } from "@app/utils/toolErrorHandler";
-import {
-  RepairParameters,
-  defaultParameters,
-} from "@app/hooks/tools/repair/useRepairParameters";
+import { CustomProcessorResult, defineCustomTool } from "@app/tools/shared/toolOperationTypes";
+import { RepairParameters } from "@app/hooks/tools/repair/useRepairParameters";
 
-const ENDPOINT = "/api/v1/misc/repair" satisfies ToolEndpoint;
-
-// Repair takes only a file; there are no request parameters to map.
-const { toApiParams, fromApiParams } = fileOnlyMapping();
-
-export const buildRepairFormData = (
+// BYPASS: operação ainda não portada para o motor local (WASM).
+// Devolve o arquivo original sem alteração, só pra não quebrar o fluxo da UI.
+const customProcessor = async (
   _parameters: RepairParameters,
-  file: File,
-): FormData => objectToFormData(toApiParams(), { fileInput: file });
+  files: File[],
+): Promise<CustomProcessorResult> => {
+  console.warn('[repair] operação ainda não implementada localmente — bypass ativo, arquivo devolvido sem alteração');
+  return { files, consumedAllInputs: true };
+};
 
-// Static configuration object
-export const repairOperationConfig = defineSingleFileTool({
-  buildFormData: buildRepairFormData,
-  toApiParams,
-  fromApiParams,
+export const repairOperationConfig = defineCustomTool({
+  customProcessor,
   operationType: "repair",
-  endpoint: ENDPOINT,
-  defaultParameters,
+  filePrefix: "repair_",
 });
 
 export const useRepairOperation = () => {

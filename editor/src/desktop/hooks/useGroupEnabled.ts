@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import apiClient from "@app/services/apiClient";
 import { selfHostedServerMonitor } from "@app/services/selfHostedServerMonitor";
 import type { GroupEnabledResult } from "@app/types/groupEnabled";
 
@@ -38,12 +37,7 @@ export function useGroupEnabled(group: string): GroupEnabledResult {
       return;
     }
 
-    apiClient
-      .get<boolean>(
-        `/api/v1/config/group-enabled?group=${encodeURIComponent(group)}`,
-      )
-      .then((res) => setResult({ enabled: res.data, unavailableReason: null }))
-      .catch(() => setResult({ enabled: false, unavailableReason: null }));
+    setResult({ enabled: false, unavailableReason: null })
   }, [group, t]);
 
   return result;

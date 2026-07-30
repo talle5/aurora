@@ -14,7 +14,6 @@ import LinkIcon from "@mui/icons-material/Link";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import { useTranslation } from "react-i18next";
 
-import apiClient from "@app/services/apiClient";
 import { absoluteWithBasePath } from "@app/constants/app";
 import { alert } from "@app/components/toast";
 import { Z_INDEX_OVER_FILE_MANAGER_MODAL } from "@app/styles/zIndex";
@@ -84,12 +83,7 @@ const ShareFileModal: React.FC<ShareFileModalProps> = ({
 
   const createShareLink = useCallback(
     async (storedFileId: number) => {
-      const response = await apiClient.post(
-        `/api/v1/storage/files/${storedFileId}/shares/links`,
-        {
-          accessRole: shareRole,
-        },
-      );
+      const response = {} as any
       return response.data as { token?: string };
     },
     [shareRole],

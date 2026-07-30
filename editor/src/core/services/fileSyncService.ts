@@ -4,8 +4,6 @@
  * IDB caches them so the grid renders instantly while the server call is in
  * flight and so local-only files survive offline.
  */
-
-import apiClient from "@app/services/apiClient";
 import { fileStorage } from "@app/services/fileStorage";
 import { alert } from "@app/components/toast";
 import { StirlingFileStub, StirlingFile } from "@app/types/fileContext";
@@ -126,13 +124,7 @@ export async function reconcileServerFiles(
   );
 
   try {
-    const response = await apiClient.get<StoredFileResponse[]>(
-      "/api/v1/storage/files",
-      {
-        suppressErrorToast: true,
-        skipAuthRedirect: true,
-      } as any,
-    );
+    const response = {} as any;
     const serverFiles = Array.isArray(response.data) ? response.data : [];
     const serverMap = new Map<number, StoredFileResponse>();
     for (const file of serverFiles) {
@@ -278,10 +270,7 @@ export async function reconcileServerFiles(
   }
 
   try {
-    const response = await apiClient.get<AccessedShareLinkResponse[]>(
-      "/api/v1/storage/share-links/accessed",
-      { suppressErrorToast: true, skipAuthRedirect: true } as any,
-    );
+    const response = {} as any;
     const sharedLinks = Array.isArray(response.data) ? response.data : [];
     const allowed = new Set(
       sharedLinks
@@ -321,7 +310,7 @@ export async function reconcileServerFiles(
     });
     if (writes.length > 0) {
       // Fire-and-forget; the in-memory list is the user-visible source.
-      void Promise.all(writes).catch(() => {});
+      void Promise.all(writes).catch(() => { });
     }
 
     // Synthesize ephemeral shared-{token} stubs for share-links the user has
@@ -419,14 +408,7 @@ export async function materializeServerStubs(
       continue;
     }
     try {
-      const downloadUrl = isSharedStub
-        ? `/api/v1/storage/share-links/${stub.remoteShareToken}`
-        : `/api/v1/storage/files/${stub.remoteStorageId}/download`;
-      const response = await apiClient.get(downloadUrl, {
-        responseType: "blob",
-        suppressErrorToast: true,
-        skipAuthRedirect: true,
-      } as any);
+      const response = {} as any;
       const rawHeaders = (response.headers ?? {}) as Record<string, unknown> & {
         get?: (name: string) => string | null;
       };
@@ -437,7 +419,7 @@ export async function materializeServerStubs(
         const lower = rawHeaders[name];
         const upper =
           rawHeaders[
-            name.replace(/(^|-)([a-z])/g, (_, p1, p2) => p1 + p2.toUpperCase())
+          name.replace(/(^|-)([a-z])/g, (_, p1, p2) => p1 + p2.toUpperCase())
           ];
         return (
           (typeof lower === "string" && lower) ||

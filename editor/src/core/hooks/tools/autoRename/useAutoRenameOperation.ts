@@ -1,65 +1,34 @@
 import { useTranslation } from "react-i18next";
-import {
-  useToolOperation,
-  defineSingleFileTool,
-} from "@app/hooks/tools/shared/useToolOperation";
-
+import { useToolOperation } from "@app/hooks/tools/shared/useToolOperation";
 import { createStandardErrorHandler } from "@app/utils/toolErrorHandler";
-import {
-  AutoRenameParameters,
-  defaultParameters,
-} from "@app/hooks/tools/autoRename/useAutoRenameParameters";
+import { CustomProcessorResult, defineCustomTool } from "@app/tools/shared/toolOperationTypes";
+import { AutoRenameParameters } from "@app/hooks/tools/autoRename/useAutoRenameParameters";
 
-const ENDPOINT = "/api/v1/misc/auto-rename" satisfies ToolEndpoint;
-type AutoRenameApiParams = ToolApiParams[typeof ENDPOINT];
+// BYPASS: operação ainda não portada para o motor local (WASM).
+// Devolve o arquivo original sem alteração, só pra não quebrar o fluxo da UI.
+// ATENÇÃO: o arquivo original tinha um responseHandler/lógica customizada
+// (verificar histórico do git) que foi removida neste bypass.
+const customProcessor = async (
+  _parameters: AutoRenameParameters,
+  files: File[],
+): Promise<CustomProcessorResult> => {
+  console.warn('[autoRename] operação ainda não implementada localmente — bypass ativo, arquivo devolvido sem alteração');
+  return { files, consumedAllInputs: true };
+};
 
-// Convert the tool's UI parameters into the auto-rename request body. The return
-// type is the generated backend model, so a spec change that renames or drops a
-// field breaks the build here.
-export const autoRenameToApiParams = (
-  parameters: AutoRenameParameters,
-): AutoRenameApiParams => ({
-  useFirstTextAsFallback: parameters.useFirstTextAsFallback,
-});
-
-// Reconstruct the tool's UI parameters from an auto-rename request body, so a
-// stored or AI-authored step can be re-rendered in the settings UI.
-export const autoRenameFromApiParams = (
-  apiParams: AutoRenameApiParams,
-): Partial<AutoRenameParameters> => ({
-  useFirstTextAsFallback:
-    apiParams.useFirstTextAsFallback ??
-    defaultParameters.useFirstTextAsFallback,
-});
-
-// Static function that can be used by both the hook and automation executor
-export const buildAutoRenameFormData = (
-  parameters: AutoRenameParameters,
-  file: File,
-): FormData =>
-  objectToFormData(autoRenameToApiParams(parameters), { fileInput: file });
-
-// Static configuration object
-export const autoRenameOperationConfig = defineSingleFileTool({
-  buildFormData: buildAutoRenameFormData,
-  toApiParams: autoRenameToApiParams,
-  fromApiParams: autoRenameFromApiParams,
+export const autoRenameOperationConfig = defineCustomTool({
+  customProcessor,
   operationType: "autoRename",
-  endpoint: ENDPOINT,
-  preserveBackendFilename: true, // Use filename from backend response headers
-  defaultParameters,
+  filePrefix: "autoRename_",
 });
 
 export const useAutoRenameOperation = () => {
   const { t } = useTranslation();
 
-  return useToolOperation({
+  return useToolOperation<AutoRenameParameters>({
     ...autoRenameOperationConfig,
     getErrorMessage: createStandardErrorHandler(
-      t(
-        "auto-rename.error.failed",
-        "An error occurred while auto-renaming the PDF.",
-      ),
+      t("auto-rename.error.failed", "An error occurred while auto-renaming the PDF."),
     ),
   });
 };

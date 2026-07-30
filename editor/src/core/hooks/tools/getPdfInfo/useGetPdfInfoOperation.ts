@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import apiClient from "@app/services/apiClient";
 import { useFileContext } from "@app/contexts/file/fileHooks";
 import { ToolOperationHook } from "@app/hooks/tools/shared/useToolOperation";
 import type { StirlingFile } from "@app/types/fileContext";
@@ -76,10 +75,7 @@ export const useGetPdfInfoOperation = (): GetPdfInfoOperationHook => {
           formData.append("fileInput", file);
 
           try {
-            const response = await apiClient.post(
-              "/api/v1/security/get-info-on-pdf",
-              formData,
-            );
+            const response = {} as any;
 
             const stub = selectors.getStirlingFileStub(file.fileId);
             const entry: PdfInfoReportEntry = {

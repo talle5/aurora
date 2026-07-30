@@ -1,6 +1,5 @@
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import apiClient from "@app/services/apiClient";
 import type { ToolOperationHook } from "@app/hooks/tools/shared/useToolOperation";
 import type { StirlingFile } from "@app/types/fileContext";
 import { extractErrorMessage } from "@app/utils/toolErrorHandler";
@@ -68,13 +67,7 @@ export const useShowJSOperation = (): ShowJSOperationHook => {
         const formData = new FormData();
         formData.append("fileInput", file);
 
-        const response = await apiClient.post(
-          "/api/v1/misc/show-javascript",
-          formData,
-          {
-            responseType: "text",
-          },
-        );
+        const response = {} as any;
 
         const text: string =
           typeof response.data === "string" ? response.data : "";

@@ -15,13 +15,8 @@ import { FileId } from "@app/types/file";
 import { StirlingFileStub } from "@app/types/fileContext";
 import { FolderId, FolderRecord, ROOT_FOLDER_ID } from "@app/types/folder";
 import { fileStorage } from "@app/services/fileStorage";
-import { folderSyncService } from "@app/services/folderSyncService";
 import { uploadHistoryChain } from "@app/services/serverStorageUpload";
 import { reconcileServerFiles } from "@app/services/fileSyncService";
-import {
-  deleteServerFile,
-  type DeleteScope,
-} from "@app/services/serverStorageDelete";
 import {
   useIndexedDB,
   useIndexedDBRevision,
@@ -123,7 +118,7 @@ interface FilesPageContextValue {
   deleteDialogOpen: boolean;
   closeDeleteDialog: () => void;
   /** Confirmed delete; scope picks local, cloud, or both. */
-  confirmRemoveFiles: (scope: DeleteScope) => Promise<void>;
+  confirmRemoveFiles: () => Promise<void>;
   /** Open the confirmation dialog; consumer renders DeleteFolderDialog. */
   promptDeleteFolder: (folder: FolderRecord) => void;
   /** Confirmed delete; pass deleteContents=true to also remove files inside. */
@@ -348,10 +343,7 @@ export function FilesPageProvider({ children }: { children: React.ReactNode }) {
           const remoteIds = cloudFiles
             .map((s) => s.remoteStorageId!)
             .filter((id): id is number => typeof id === "number");
-          const result = await folderSyncService.bulkMoveFiles(
-            remoteIds,
-            folderId,
-          );
+          const result = {} as any
           if (result.skippedFileIds.length > 0) {
             folders.setError(
               t(
@@ -409,54 +401,22 @@ export function FilesPageProvider({ children }: { children: React.ReactNode }) {
   // The actual deletion for a chosen scope. Shared by the direct (local-only)
   // path and the dialog's confirm.
   const performDelete = useCallback(
-    async (fileIds: FileId[], scope: DeleteScope) => {
+    async (fileIds: FileId[],) => {
       const stubs = fileIds
         .map((id) => fileMap.get(id))
         .filter((s): s is StirlingFileStub => Boolean(s));
 
-      // Cloud delete (owner-only). Dedup by remoteStorageId since a history
-      // chain shares a single server file.
-      if (scope === "cloud" || scope === "everywhere") {
-        const remoteIds = Array.from(
-          new Set(
-            stubs
-              .filter(
-                (s) =>
-                  typeof s.remoteStorageId === "number" &&
-                  s.remoteOwnedByCurrentUser === true,
-              )
-              .map((s) => s.remoteStorageId as number),
-          ),
-        );
-        if (remoteIds.length > 0) {
-          const results = await Promise.allSettled(
-            remoteIds.map((id) => deleteServerFile(id)),
-          );
-          const failed = results.filter((r) => r.status === "rejected").length;
-          if (failed > 0) {
-            folders.setError(
-              t(
-                "filesPage.error.cloudDeleteFailed",
-                "Couldn't delete {{count}} file(s) from the cloud.",
-                { count: failed },
-              ),
-            );
-          }
-        }
+      const localIds = stubs
+        .filter((s) => {
+          const id = String(s.id);
+          return !id.startsWith("server-") && !id.startsWith("shared-");
+        })
+        .map((s) => s.id);
+
+      if (localIds.length > 0) {
+        await fileActions.removeFiles(localIds, true);
       }
 
-      // Local delete - skip ephemeral server-/shared- stubs (no IDB row).
-      if (scope === "device" || scope === "everywhere") {
-        const localIds = stubs
-          .filter((s) => {
-            const id = String(s.id);
-            return !id.startsWith("server-") && !id.startsWith("shared-");
-          })
-          .map((s) => s.id);
-        if (localIds.length > 0) {
-          await fileActions.removeFiles(localIds, true);
-        }
-      }
 
       const removedIds = new Set(fileIds);
       setSelectedFileIds((prev) => {
@@ -484,7 +444,7 @@ export function FilesPageProvider({ children }: { children: React.ReactNode }) {
         );
       });
       if (!hasDeletableCloud) {
-        await performDelete(fileIds, "device");
+        await performDelete(fileIds);
         return;
       }
       setDeleteDialogFileIds(fileIds);
@@ -499,8 +459,8 @@ export function FilesPageProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const confirmRemoveFiles = useCallback(
-    async (scope: DeleteScope) => {
-      await performDelete(deleteDialogFileIds, scope);
+    async () => {
+      await performDelete(deleteDialogFileIds);
       setDeleteDialogOpen(false);
       setDeleteDialogFileIds([]);
     },

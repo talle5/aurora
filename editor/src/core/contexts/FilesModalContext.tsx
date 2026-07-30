@@ -15,7 +15,6 @@ import {
 import { StirlingFileStub } from "@app/types/fileContext";
 import type { FileId } from "@app/types/file";
 import { fileStorage } from "@app/services/fileStorage";
-import apiClient from "@app/services/apiClient";
 import { alert } from "@app/components/toast";
 import {
   extractLatestFilesFromBundle,
@@ -175,58 +174,6 @@ export const FilesModalProvider: React.FC<{ children: React.ReactNode }> = ({
     [actions, fileStorage],
   );
 
-  const downloadServerFile = useCallback(async (remoteId: number) => {
-    const response = await apiClient.get(
-      `/api/v1/storage/files/${remoteId}/download`,
-      {
-        responseType: "blob",
-        suppressErrorToast: true,
-        skipAuthRedirect: true,
-      } as any,
-    );
-    const contentType =
-      (response.headers &&
-        (response.headers["content-type"] ||
-          response.headers["Content-Type"])) ||
-      "";
-    const disposition =
-      (response.headers &&
-        (response.headers["content-disposition"] ||
-          response.headers["Content-Disposition"])) ||
-      "";
-    const filename =
-      parseContentDispositionFilename(disposition) || "server-file";
-    const blob = response.data as Blob;
-    const contentTypeValue = contentType || blob.type;
-    return { blob, filename, contentType: contentTypeValue };
-  }, []);
-
-  const downloadShareLinkFile = useCallback(async (shareToken: string) => {
-    const response = await apiClient.get(
-      `/api/v1/storage/share-links/${shareToken}`,
-      {
-        responseType: "blob",
-        suppressErrorToast: true,
-        skipAuthRedirect: true,
-      } as any,
-    );
-    const contentType =
-      (response.headers &&
-        (response.headers["content-type"] ||
-          response.headers["Content-Type"])) ||
-      "";
-    const disposition =
-      (response.headers &&
-        (response.headers["content-disposition"] ||
-          response.headers["Content-Disposition"])) ||
-      "";
-    const filename =
-      parseContentDispositionFilename(disposition) || "shared-file";
-    const blob = response.data as Blob;
-    const contentTypeValue = contentType || blob.type;
-    return { blob, filename, contentType: contentTypeValue };
-  }, []);
-
   const openFilesModal = useCallback(
     (options?: {
       insertAfterPage?: number;
@@ -310,31 +257,6 @@ export const FilesModalProvider: React.FC<{ children: React.ReactNode }> = ({
               loadedFiles.push(stirlingFile);
             }
           }
-          for (const stub of serverOnlyStubs) {
-            if (!stub.remoteStorageId) continue;
-            const { blob, filename, contentType } = await downloadServerFile(
-              stub.remoteStorageId,
-            );
-            const latestFiles = await extractLatestFilesFromBundle(
-              blob,
-              filename,
-              contentType,
-            );
-            loadedFiles.push(...latestFiles);
-          }
-          for (const stub of sharedLinkStubs) {
-            if (!stub.remoteShareToken) continue;
-            const { blob, filename, contentType } = await downloadShareLinkFile(
-              stub.remoteShareToken,
-            );
-            const latestFiles = await extractLatestFilesFromBundle(
-              blob,
-              filename,
-              contentType,
-            );
-            loadedFiles.push(...latestFiles);
-          }
-
           if (loadedFiles.length > 0) {
             customHandler(loadedFiles, insertAfterPage);
           }
@@ -352,53 +274,6 @@ export const FilesModalProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       const selectedFromServer: FileId[] = [];
-      try {
-        for (const stub of serverOnlyStubs) {
-          if (!stub.remoteStorageId) continue;
-          const { blob, filename, contentType } = await downloadServerFile(
-            stub.remoteStorageId,
-          );
-          const importedIds = await importBundleToWorkbench(
-            blob,
-            filename,
-            contentType,
-            stub.remoteStorageId,
-            stub.remoteStorageUpdatedAt,
-            stub.remoteOwnerUsername,
-            stub.remoteOwnedByCurrentUser,
-            stub.remoteSharedViaLink,
-            stub.remoteShareToken,
-          );
-          selectedFromServer.push(...importedIds);
-        }
-        for (const stub of sharedLinkStubs) {
-          if (!stub.remoteShareToken) continue;
-          const { blob, filename, contentType } = await downloadShareLinkFile(
-            stub.remoteShareToken,
-          );
-          const importedIds = await importBundleToWorkbench(
-            blob,
-            filename,
-            contentType,
-            stub.remoteStorageId,
-            stub.remoteStorageUpdatedAt,
-            stub.remoteOwnerUsername,
-            stub.remoteOwnedByCurrentUser,
-            true,
-            stub.remoteShareToken,
-          );
-          selectedFromServer.push(...importedIds);
-        }
-      } catch (error) {
-        console.error("Failed to load server files:", error);
-        alert({
-          alertType: "error",
-          title: "Unable to download one or more server files.",
-          expandable: false,
-          durationMs: 3500,
-        });
-      }
-
       if (actions.addStirlingFileStubs) {
         await actions.addStirlingFileStubs(localStubs, { selectFiles: false });
         // Union newly picked files with the current selection so tools like
@@ -431,8 +306,6 @@ export const FilesModalProvider: React.FC<{ children: React.ReactNode }> = ({
       customHandler,
       insertAfterPage,
       fileCtx,
-      downloadServerFile,
-      downloadShareLinkFile,
       extractLatestFilesFromBundle,
       importBundleToWorkbench,
       navActions,

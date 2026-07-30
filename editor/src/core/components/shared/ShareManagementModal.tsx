@@ -20,7 +20,6 @@ import LinkIcon from "@mui/icons-material/Link";
 import ShareIcon from "@mui/icons-material/Share";
 import { useTranslation } from "react-i18next";
 
-import apiClient from "@app/services/apiClient";
 import { absoluteWithBasePath } from "@app/constants/app";
 import { alert } from "@app/components/toast";
 import { Z_INDEX_OVER_FILE_MANAGER_MODAL } from "@app/styles/zIndex";
@@ -139,12 +138,7 @@ const ShareManagementModal: React.FC<ShareManagementModalProps> = ({
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const response = await apiClient.get<StoredFileResponse>(
-        `/api/v1/storage/files/${file.remoteStorageId}`,
-        {
-          suppressErrorToast: true,
-        },
-      );
+      const response = {} as any;
       const links = response.data?.shareLinks ?? [];
       const users =
         response.data?.sharedUsers ??
@@ -199,12 +193,7 @@ const ShareManagementModal: React.FC<ShareManagementModalProps> = ({
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const response = await apiClient.post(
-        `/api/v1/storage/files/${file.remoteStorageId}/shares/links`,
-        {
-          accessRole: shareRole,
-        },
-      );
+      const response = {} as any;
       const token = response.data?.token as string | undefined;
       if (token) {
         setShareLinks((prev) => [
@@ -268,9 +257,6 @@ const ShareManagementModal: React.FC<ShareManagementModalProps> = ({
       setIsLoading(true);
       setConfirmRevokeToken(null);
       try {
-        await apiClient.delete(
-          `/api/v1/storage/files/${file.remoteStorageId}/shares/links/${token}`,
-        );
         // Compute before setShareLinks so we don't read stale closure state after the update
         const nextHasLinks =
           shareLinks.filter((link) => link.token !== token).length > 0;
@@ -310,10 +296,7 @@ const ShareManagementModal: React.FC<ShareManagementModalProps> = ({
       if (!file.remoteStorageId) return;
       setIsLoading(true);
       try {
-        const response = await apiClient.get<ShareLinkAccessResponse[]>(
-          `/api/v1/storage/files/${file.remoteStorageId}/shares/links/${token}/accesses`,
-          { suppressErrorToast: true },
-        );
+        const response = {} as any;
         setActivityMap((prev) => ({
           ...prev,
           [token]: response.data ?? [],
@@ -352,13 +335,6 @@ const ShareManagementModal: React.FC<ShareManagementModalProps> = ({
       setIsLoading(true);
       setErrorMessage(null);
       try {
-        await apiClient.post(
-          `/api/v1/storage/files/${file.remoteStorageId}/shares/users`,
-          {
-            username: trimmed,
-            accessRole: shareRole,
-          },
-        );
         setSharedUsers((prev) => {
           if (prev.some((user) => user.username === trimmed)) {
             return prev.map((user) =>
@@ -404,13 +380,6 @@ const ShareManagementModal: React.FC<ShareManagementModalProps> = ({
       setIsLoading(true);
       setErrorMessage(null);
       try {
-        await apiClient.post(
-          `/api/v1/storage/files/${file.remoteStorageId}/shares/users`,
-          {
-            username,
-            accessRole: nextRole,
-          },
-        );
         setSharedUsers((prev) =>
           prev.map((user) =>
             user.username === username
@@ -443,9 +412,6 @@ const ShareManagementModal: React.FC<ShareManagementModalProps> = ({
       setErrorMessage(null);
       setConfirmRemoveUser(null);
       try {
-        await apiClient.delete(
-          `/api/v1/storage/files/${file.remoteStorageId}/shares/users/${encodeURIComponent(username)}`,
-        );
         setSharedUsers((prev) =>
           prev.filter((user) => user.username !== username),
         );

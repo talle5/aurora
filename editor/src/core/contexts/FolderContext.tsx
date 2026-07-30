@@ -26,7 +26,6 @@ import React, {
 } from "react";
 
 import { folderStorage } from "@app/services/folderStorage";
-import { folderSyncService } from "@app/services/folderSyncService";
 import {
   FolderBreadcrumbEntry,
   FolderId,
@@ -296,52 +295,18 @@ export function FolderProvider({ children }: FolderProviderProps) {
   const pullFromServer = useCallback(async (): Promise<PullResult> => {
     if (pullInFlight.current) return pullInFlight.current;
     const promise: Promise<PullResult> = (async () => {
-      let remote: FolderRecord[];
-      try {
-        remote = await folderSyncService.list();
-      } catch (err) {
-        const status = (err as { response?: { status?: number } })?.response
-          ?.status;
-        if (status === 404) {
-          // Storage backend not deployed in this build - expected for
-          // core-only.
-          if (mountedRef.current) setServerReachable(false);
-          return { ok: false, reason: "endpoint-missing" };
-        }
-        if (mountedRef.current) {
-          setServerReachable(false);
-          // Only surface a banner when this is a server-side outage or
-          // network glitch the user can act on. 4xx responses are
-          // configuration / auth signals - the deployment chose to disable
-          // storage (403 "Storage is disabled") or the user simply isn't
-          // logged in yet (401) - in both cases the "Folder sync failed"
-          // banner is noise the user can't fix from inside the file
-          // manager. Folder-mutation buttons get individual disabled
-          // tooltips via `serverReachable`, which is enough signal.
-          if (status === undefined || status >= 500) {
-            console.warn("[FolderContext] pullFromServer failed", err);
-            setError(`Folder sync failed: ${formatServerError(err)}`);
-          }
-        }
-        // Narrowing the ternary into a typed variable so TS keeps the literal
-        // union rather than widening to `string`.
-        const reason: PullResult["reason"] =
-          status && status >= 500 ? "server" : status ? "client" : "network";
-        return { ok: false, reason };
-      }
-
       // Server-wins: cache becomes a verbatim copy of what the server
       // returned. A folder absent from the response was deleted server-side;
       // replaceAll drops it from the cache too.
       try {
-        await folderStorage.replaceAll(remote);
+        await folderStorage.replaceAll([]);
       } catch (cacheErr) {
         // The server response was good; only the local cache write failed.
         // We still consider this an ok pull - render from in-memory state.
         console.warn("[FolderContext] cache replace failed", cacheErr);
       }
       if (mountedRef.current) {
-        setFolders(remote);
+        setFolders([]);
         setServerReachable(true);
         setError(null);
       }
@@ -518,171 +483,158 @@ export function FolderProvider({ children }: FolderProviderProps) {
     [bumpFolderRevision, folders, handleStaleFolder],
   );
 
-  const createFolder = useCallback(
-    async (
-      name: string,
-      parentFolderId: FolderId | null = currentFolderId,
-    ): Promise<FolderRecord> => {
-      const color = pickFolderColor(name);
-      // Client-side id makes server idempotency check safe on retry.
-      const id = createFolderId();
-      const result = await runFolderMutation(
-        () =>
-          folderSyncService.create({
-            id,
-            name,
-            parentFolderId,
-            color,
-          }),
-        async (record) => {
-          setFolders((prev) => [
-            ...prev.filter((f) => f.id !== record.id),
-            record,
-          ]);
-          await folderStorage.upsertFolder(record);
-        },
-      );
-      // No staleFolderId passed → null branch can't fire; defensive throw.
-      if (result === null) {
-        throw new Error("createFolder unexpectedly returned null");
-      }
-      return result;
-    },
-    [currentFolderId, runFolderMutation],
-  );
+//   const createFolder = useCallback(
+//     async (
+//       name: string,
+//       parentFolderId: FolderId | null = currentFolderId,
+//     ): Promise<FolderRecord> => {
+//       const color = pickFolderColor(name);
+//       // Client-side id makes server idempotency check safe on retry.
+//       const id = createFolderId();
+//       const result = await runFolderMutation(
+//       await folderStorage.upsertFolder(record)
+//       );
+//       // No staleFolderId passed → null branch can't fire; defensive throw.
+//       if (result === null) {
+//         throw new Error("createFolder unexpectedly returned null");
+//       }
+//       return result;
+//     },
+//     [currentFolderId, runFolderMutation],
+//   );
 
-  const renameFolder = useCallback(
-    async (id: FolderId, name: string) => {
-      return runFolderMutation(
-        () => folderSyncService.update(id, { name }),
-        async (record) => {
-          setFolders((prev) =>
-            prev.map((f) => (f.id === record.id ? record : f)),
-          );
-          await folderStorage.upsertFolder(record);
-        },
-        id,
-      );
-    },
-    [runFolderMutation],
-  );
+//   const renameFolder = useCallback(
+//     async (id: FolderId, name: string) => {
+//       return runFolderMutation(
+//         () => folderSyncService.update(id, { name }),
+//         async (record) => {
+//           setFolders((prev) =>
+//             prev.map((f) => (f.id === record.id ? record : f)),
+//           );
+//           await folderStorage.upsertFolder(record);
+//         },
+//         id,
+//       );
+//     },
+//     [runFolderMutation],
+//   );
 
-  const moveFolder = useCallback(
-    async (id: FolderId, newParentId: FolderId | null) => {
-      return runFolderMutation(
-        () =>
-          folderSyncService.update(id, {
-            reparent: true,
-            parentFolderId: newParentId,
-          }),
-        async (record) => {
-          setFolders((prev) =>
-            prev.map((f) => (f.id === record.id ? record : f)),
-          );
-          await folderStorage.upsertFolder(record);
-        },
-        id,
-      );
-    },
-    [runFolderMutation],
-  );
+//   const moveFolder = useCallback(
+//     async (id: FolderId, newParentId: FolderId | null) => {
+//       return runFolderMutation(
+//         () =>
+//           folderSyncService.update(id, {
+//             reparent: true,
+//             parentFolderId: newParentId,
+//           }),
+//         async (record) => {
+//           setFolders((prev) =>
+//             prev.map((f) => (f.id === record.id ? record : f)),
+//           );
+//           await folderStorage.upsertFolder(record);
+//         },
+//         id,
+//       );
+//     },
+//     [runFolderMutation],
+//   );
 
-  const updateFolderAppearance = useCallback(
-    async (
-      id: FolderId,
-      appearance: { color?: string; icon?: string | null },
-    ) => {
-      return runFolderMutation(
-        () =>
-          folderSyncService.update(id, {
-            color: appearance.color,
-            icon: appearance.icon,
-          }),
-        async (record) => {
-          setFolders((prev) =>
-            prev.map((f) => (f.id === record.id ? record : f)),
-          );
-          await folderStorage.upsertFolder(record);
-        },
-        id,
-      );
-    },
-    [runFolderMutation],
-  );
+//   const updateFolderAppearance = useCallback(
+//     async (
+//       id: FolderId,
+//       appearance: { color?: string; icon?: string | null },
+//     ) => {
+//       return runFolderMutation(
+//         () =>
+//           folderSyncService.update(id, {
+//             color: appearance.color,
+//             icon: appearance.icon,
+//           }),
+//         async (record) => {
+//           setFolders((prev) =>
+//             prev.map((f) => (f.id === record.id ? record : f)),
+//           );
+//           await folderStorage.upsertFolder(record);
+//         },
+//         id,
+//       );
+//     },
+//     [runFolderMutation],
+//   );
 
-  const deleteFolder = useCallback(
-    async (id: FolderId): Promise<FolderId[]> => {
-      // Custom path (not runFolderMutation) because we have two best-effort
-      // cleanups to coordinate, and need to reset currentFolderId BEFORE the
-      // cleanups so the user isn't stranded inside a tombstone if the cache
-      // write fails.
-      let removed: FolderId[];
-      try {
-        removed = await folderSyncService.delete(id);
-      } catch (err) {
-        if (errorStatus(err) === 404) {
-          // Already gone; treat as success. Return [id]; pull is authoritative.
-          handleStaleFolder(id, folders);
-          return [id];
-        }
-        if (mountedRef.current) {
-          setServerReachable(reachabilityFromError(err));
-          setError(formatServerError(err));
-        }
-        throw err;
-      }
-      const removedSet = new Set(removed);
-      if (mountedRef.current) {
-        setServerReachable(true);
-        setError(null);
-        setFolders((prev) => prev.filter((f) => !removedSet.has(f.id)));
-        // Reset if EITHER the current folder OR any ancestor was deleted.
-        // Walking by parentFolderId catches the "user is browsing /a/b/c and
-        // we just deleted /a" case where the exact-id check would leave the
-        // UI pointing at /c which no longer exists.
-        if (
-          currentFolderId &&
-          shouldStrandedReset(currentFolderId, removedSet, folders)
-        ) {
-          setCurrentFolderId(ROOT_FOLDER_ID);
-        }
-      }
-      bumpFolderRevision();
-      // Belt-and-braces local cleanup; either failure shouldn't undo the
-      // server delete or block the second cleanup.
-      const [cacheResult, filesResult] = await Promise.allSettled([
-        folderStorage.removeFolders(removed),
-        clearFolderForFiles(removed),
-      ]);
-      if (cacheResult.status === "rejected") {
-        console.warn(
-          "[FolderContext] folder cache cleanup failed after server delete",
-          cacheResult.reason,
-        );
-      }
-      if (filesResult.status === "rejected") {
-        console.warn(
-          "[FolderContext] file folderId cleanup failed after server delete",
-          filesResult.reason,
-        );
-        if (mountedRef.current) {
-          setError(
-            "Folder was deleted, but some files couldn't be detached locally. Refresh to fix.",
-          );
-        }
-      }
-      return removed;
-    },
-    [
-      bumpFolderRevision,
-      clearFolderForFiles,
-      currentFolderId,
-      folders,
-      handleStaleFolder,
-    ],
-  );
+//   const deleteFolder = useCallback(
+//     async (id: FolderId): Promise<FolderId[]> => {
+//       // Custom path (not runFolderMutation) because we have two best-effort
+//       // cleanups to coordinate, and need to reset currentFolderId BEFORE the
+//       // cleanups so the user isn't stranded inside a tombstone if the cache
+//       // write fails.
+//       let removed: FolderId[];
+//       try {
+//         removed = await folderSyncService.delete(id);
+//       } catch (err) {
+//         if (errorStatus(err) === 404) {
+//           // Already gone; treat as success. Return [id]; pull is authoritative.
+//           handleStaleFolder(id, folders);
+//           return [id];
+//         }
+//         if (mountedRef.current) {
+//           setServerReachable(reachabilityFromError(err));
+//           setError(formatServerError(err));
+//         }
+//         throw err;
+//       }
+//       const removedSet = new Set(removed);
+//       if (mountedRef.current) {
+//         setServerReachable(true);
+//         setError(null);
+//         setFolders((prev) => prev.filter((f) => !removedSet.has(f.id)));
+//         // Reset if EITHER the current folder OR any ancestor was deleted.
+//         // Walking by parentFolderId catches the "user is browsing /a/b/c and
+//         // we just deleted /a" case where the exact-id check would leave the
+//         // UI pointing at /c which no longer exists.
+//         if (
+//           currentFolderId &&
+//           shouldStrandedReset(currentFolderId, removedSet, folders)
+//         ) {
+//           setCurrentFolderId(ROOT_FOLDER_ID);
+//         }
+//       }
+//       bumpFolderRevision();
+//       // Belt-and-braces local cleanup; either failure shouldn't undo the
+//       // server delete or block the second cleanup.
+//       const [cacheResult, filesResult] = await Promise.allSettled([
+//         folderStorage.removeFolders(removed),
+//         clearFolderForFiles(removed),
+//       ]);
+//       if (cacheResult.status === "rejected") {
+//         console.warn(
+//           "[FolderContext] folder cache cleanup failed after server delete",
+//           cacheResult.reason,
+//         );
+//       }
+//       if (filesResult.status === "rejected") {
+//         console.warn(
+//           "[FolderContext] file folderId cleanup failed after server delete",
+//           filesResult.reason,
+//         );
+//         if (mountedRef.current) {
+//           setError(
+//             "Folder was deleted, but some files couldn't be detached locally. Refresh to fix.",
+//           );
+//         }
+//       }
+//       return removed;
+//     },
+//     [
+//       bumpFolderRevision,
+//       clearFolderForFiles,
+//       currentFolderId,
+//       folders,
+//       handleStaleFolder,
+//     ],
+//   );
 
-  const value = useMemo<FolderContextValue>(
+  const value = useMemo(
     () => ({
       folders,
       foldersById,
@@ -696,14 +648,9 @@ export function FolderProvider({ children }: FolderProviderProps) {
       breadcrumbs,
       refresh,
       pullFromServer,
-      createFolder,
-      renameFolder,
-      moveFolder,
-      updateFolderAppearance,
-      deleteFolder,
       getChildFolderIds,
       isDescendant,
-    }),
+    }as any),
     [
       folders,
       foldersById,
@@ -715,11 +662,6 @@ export function FolderProvider({ children }: FolderProviderProps) {
       breadcrumbs,
       refresh,
       pullFromServer,
-      createFolder,
-      renameFolder,
-      moveFolder,
-      updateFolderAppearance,
-      deleteFolder,
       getChildFolderIds,
       isDescendant,
     ],
@@ -739,6 +681,6 @@ export function useFolders(): FolderContextValue {
 }
 
 /** Optional version - returns null when used outside the provider. */
-export function useOptionalFolders(): FolderContextValue | null {
-  return useContext(FolderContext);
-}
+// export function useOptionalFolders(): FolderContextValue | null {
+//   return useContext(FolderContext);
+// }

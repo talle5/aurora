@@ -63,7 +63,6 @@ import { useTranslation } from "react-i18next";
 import { alert } from "@app/components/toast";
 import { buildRemovePasswordFormData } from "@app/hooks/tools/removePassword/buildRemovePasswordFormData";
 import type { RemovePasswordParameters } from "@app/hooks/tools/removePassword/useRemovePasswordParameters";
-import apiClient from "@app/services/apiClient";
 import { processResponse } from "@app/utils/toolResponseProcessor";
 import { ToolOperation } from "@app/types/file";
 import { handlePasswordError } from "@app/utils/toolErrorHandler";
@@ -367,68 +366,68 @@ function FileContextInner({
     [],
   );
 
-  const runAutomaticPasswordRemoval = useCallback(
-    async (fileId: FileId, password: string): Promise<void> => {
-      const file = filesRef.current.get(fileId);
-      const parentStub = stateRef.current.files.byId[fileId];
+  // const runAutomaticPasswordRemoval = useCallback(
+  //   async (fileId: FileId, password: string): Promise<void> => {
+  //     const file = filesRef.current.get(fileId);
+  //     const parentStub = stateRef.current.files.byId[fileId];
 
-      if (!file || !parentStub) {
-        throw new Error(
-          t(
-            "encryptedPdfUnlock.missingFile",
-            "The selected file is no longer available.",
-          ),
-        );
-      }
+  //     if (!file || !parentStub) {
+  //       throw new Error(
+  //         t(
+  //           "encryptedPdfUnlock.missingFile",
+  //           "The selected file is no longer available.",
+  //         ),
+  //       );
+  //     }
 
-      const params: RemovePasswordParameters = { password };
-      const formData = buildRemovePasswordFormData(params, file);
+  //     const params: RemovePasswordParameters = { password };
+  //     const formData = buildRemovePasswordFormData(params, file);
 
-      const response = await apiClient.post(
-        "/api/v1/security/remove-password",
-        formData,
-        {
-          responseType: "blob",
-          suppressErrorToast: true, // Handle errors in modal UI instead of toast
-        },
-      );
-      const responseFiles = await processResponse(response.data, [file]);
+  //     const response = await apiClient.post(
+  //       "/api/v1/security/remove-password",
+  //       formData,
+  //       {
+  //         responseType: "blob",
+  //         suppressErrorToast: true, // Handle errors in modal UI instead of toast
+  //       },
+  //     );
+  //     const responseFiles = await processResponse(response.data, [file]);
 
-      const unlockedFile = responseFiles[0];
-      if (!unlockedFile) {
-        throw new Error(
-          t(
-            "encryptedPdfUnlock.emptyResponse",
-            "Password removal did not produce a file.",
-          ),
-        );
-      }
+  //     const unlockedFile = responseFiles[0];
+  //     if (!unlockedFile) {
+  //       throw new Error(
+  //         t(
+  //           "encryptedPdfUnlock.emptyResponse",
+  //           "Password removal did not produce a file.",
+  //         ),
+  //       );
+  //     }
 
-      const processedMetadata =
-        await generateProcessedFileMetadata(unlockedFile);
-      const thumbnail = processedMetadata?.thumbnailUrl;
+  //     const processedMetadata =
+  //       await generateProcessedFileMetadata(unlockedFile);
+  //     const thumbnail = processedMetadata?.thumbnailUrl;
 
-      const operation: ToolOperation = {
-        toolId: "removePassword",
-        timestamp: Date.now(),
-      };
+  //     const operation: ToolOperation = {
+  //       toolId: "removePassword",
+  //       timestamp: Date.now(),
+  //     };
 
-      const childStub = createChildStub(
-        parentStub,
-        operation,
-        unlockedFile,
-        thumbnail,
-        processedMetadata,
-      );
-      const stirlingUnlockedFile = createStirlingFile(
-        unlockedFile,
-        childStub.id,
-      );
+  //     const childStub = createChildStub(
+  //       parentStub,
+  //       operation,
+  //       unlockedFile,
+  //       thumbnail,
+  //       processedMetadata,
+  //     );
+  //     const stirlingUnlockedFile = createStirlingFile(
+  //       unlockedFile,
+  //       childStub.id,
+  //     );
 
-      await consumeFilesWrapper([fileId], [stirlingUnlockedFile], [childStub]);
-    },
-    [consumeFilesWrapper, t],
-  );
+  //     await consumeFilesWrapper([fileId], [stirlingUnlockedFile], [childStub]);
+  //   },
+  //   [consumeFilesWrapper, t],
+  // );
 
   const handleUnlockSubmit = useCallback(async () => {
     if (!activeEncryptedFileId) return;
@@ -442,10 +441,10 @@ function FileContextInner({
     setIsUnlocking(true);
     setUnlockError(null);
     try {
-      await runAutomaticPasswordRemoval(
-        activeEncryptedFileId,
-        unlockPassword.trim(),
-      );
+      // await runAutomaticPasswordRemoval(
+      //   activeEncryptedFileId,
+      //   unlockPassword.trim(),
+      // );
       const fileName = stateRef.current.files.byId[activeEncryptedFileId]?.name;
       alert({
         alertType: "success",
@@ -477,7 +476,8 @@ function FileContextInner({
     } finally {
       setIsUnlocking(false);
     }
-  }, [activeEncryptedFileId, unlockPassword, runAutomaticPasswordRemoval, t]);
+  }, [activeEncryptedFileId, unlockPassword, t]);
+  //}, [activeEncryptedFileId, unlockPassword, runAutomaticPasswordRemoval, t]);
 
   const handleUnlockAll = useCallback(async () => {
     if (!activeEncryptedFileId) return;
@@ -498,7 +498,7 @@ function FileContextInner({
 
     for (const fileId of allIds) {
       try {
-        await runAutomaticPasswordRemoval(fileId, pw);
+        // await runAutomaticPasswordRemoval(fileId, pw);
         dismissedEncryptedFilesRef.current.delete(fileId);
         successCount++;
       } catch {
@@ -541,9 +541,15 @@ function FileContextInner({
     activeEncryptedFileId,
     encryptedQueue,
     unlockPassword,
-    runAutomaticPasswordRemoval,
     t,
   ]);
+  // }, [
+  //   activeEncryptedFileId,
+  //   encryptedQueue,
+  //   unlockPassword,
+  //   runAutomaticPasswordRemoval,
+  //   t,
+  // ]);
 
   const undoConsumeFilesWrapper = useCallback(
     async (

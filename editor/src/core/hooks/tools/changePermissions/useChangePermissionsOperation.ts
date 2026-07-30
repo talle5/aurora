@@ -1,91 +1,34 @@
 import { useTranslation } from "react-i18next";
-import {
-  useToolOperation,
-  defineSingleFileTool,
-} from "@app/hooks/tools/shared/useToolOperation";
-
+import { useToolOperation } from "@app/hooks/tools/shared/useToolOperation";
 import { createStandardErrorHandler } from "@app/utils/toolErrorHandler";
-import {
-  ChangePermissionsParameters,
-  defaultParameters,
-} from "@app/hooks/tools/changePermissions/useChangePermissionsParameters";
+import { CustomProcessorResult, defineCustomTool } from "@app/tools/shared/toolOperationTypes";
+import { ChangePermissionsParameters } from "@app/hooks/tools/changePermissions/useChangePermissionsParameters";
 
-// Change Permissions reuses the Add Password endpoint but sends only the
-// prevent* subset of the request model (no password or keyLength).
-const ENDPOINT = "/api/v1/security/add-password" satisfies ToolEndpoint;
-type AddPasswordApiParams = ToolApiParams[typeof ENDPOINT];
+// BYPASS: operação ainda não portada para o motor local (WASM).
+// Devolve o arquivo original sem alteração, só pra não quebrar o fluxo da UI.
+// ATENÇÃO: o arquivo original tinha um responseHandler/lógica customizada
+// (verificar histórico do git) que foi removida neste bypass.
+const customProcessor = async (
+  _parameters: ChangePermissionsParameters,
+  files: File[],
+): Promise<CustomProcessorResult> => {
+  console.warn('[changePermissions] operação ainda não implementada localmente — bypass ativo, arquivo devolvido sem alteração');
+  return { files, consumedAllInputs: true };
+};
 
-// Convert the tool's UI parameters into the add-password request body. Only the
-// prevent* permission flags are sent; password and keyLength are optional on the
-// model and left unset, so the endpoint changes permissions without encrypting.
-export const changePermissionsToApiParams = (
-  parameters: ChangePermissionsParameters,
-): AddPasswordApiParams => ({
-  preventAssembly: parameters.preventAssembly ?? false,
-  preventExtractContent: parameters.preventExtractContent ?? false,
-  preventExtractForAccessibility:
-    parameters.preventExtractForAccessibility ?? false,
-  preventFillInForm: parameters.preventFillInForm ?? false,
-  preventModify: parameters.preventModify ?? false,
-  preventModifyAnnotations: parameters.preventModifyAnnotations ?? false,
-  preventPrinting: parameters.preventPrinting ?? false,
-  preventPrintingFaithful: parameters.preventPrintingFaithful ?? false,
-});
-
-// Reconstruct the tool's UI parameters from an add-password request body, so a
-// stored or AI-authored step can be re-rendered in the settings UI.
-export const changePermissionsFromApiParams = (
-  apiParams: AddPasswordApiParams,
-): Partial<ChangePermissionsParameters> => ({
-  preventAssembly:
-    apiParams.preventAssembly ?? defaultParameters.preventAssembly,
-  preventExtractContent:
-    apiParams.preventExtractContent ?? defaultParameters.preventExtractContent,
-  preventExtractForAccessibility:
-    apiParams.preventExtractForAccessibility ??
-    defaultParameters.preventExtractForAccessibility,
-  preventFillInForm:
-    apiParams.preventFillInForm ?? defaultParameters.preventFillInForm,
-  preventModify: apiParams.preventModify ?? defaultParameters.preventModify,
-  preventModifyAnnotations:
-    apiParams.preventModifyAnnotations ??
-    defaultParameters.preventModifyAnnotations,
-  preventPrinting:
-    apiParams.preventPrinting ?? defaultParameters.preventPrinting,
-  preventPrintingFaithful:
-    apiParams.preventPrintingFaithful ??
-    defaultParameters.preventPrintingFaithful,
-});
-
-// Static function that can be used by both the hook and automation executor
-export const buildChangePermissionsFormData = (
-  parameters: ChangePermissionsParameters,
-  file: File,
-): FormData =>
-  objectToFormData(changePermissionsToApiParams(parameters), {
-    fileInput: file,
-  });
-
-// Static configuration object
-export const changePermissionsOperationConfig = defineSingleFileTool({
-  buildFormData: buildChangePermissionsFormData,
-  toApiParams: changePermissionsToApiParams,
-  fromApiParams: changePermissionsFromApiParams,
+export const changePermissionsOperationConfig = defineCustomTool({
+  customProcessor,
   operationType: "changePermissions",
-  endpoint: ENDPOINT, // Change Permissions is a fake endpoint for the Add Password tool
-  defaultParameters,
+  filePrefix: "changePermissions_",
 });
 
 export const useChangePermissionsOperation = () => {
   const { t } = useTranslation();
 
-  return useToolOperation({
+  return useToolOperation<ChangePermissionsParameters>({
     ...changePermissionsOperationConfig,
     getErrorMessage: createStandardErrorHandler(
-      t(
-        "changePermissions.error.failed",
-        "An error occurred while changing PDF permissions.",
-      ),
+      t("changePermissions.error.failed", "An error occurred while changing PDF permissions."),
     ),
   });
 };

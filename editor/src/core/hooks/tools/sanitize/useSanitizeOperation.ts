@@ -1,63 +1,23 @@
 import { useTranslation } from "react-i18next";
-import {
-  useToolOperation,
-  defineSingleFileTool,
-} from "@app/hooks/tools/shared/useToolOperation";
-
+import { useToolOperation } from "@app/hooks/tools/shared/useToolOperation";
 import { createStandardErrorHandler } from "@app/utils/toolErrorHandler";
-import {
-  SanitizeParameters,
-  defaultParameters,
-} from "@app/hooks/tools/sanitize/useSanitizeParameters";
+import { CustomProcessorResult, defineCustomTool } from "@app/tools/shared/toolOperationTypes";
+import { SanitizeParameters } from "@app/hooks/tools/sanitize/useSanitizeParameters";
 
-const ENDPOINT = "/api/v1/security/sanitize-pdf" satisfies ToolEndpoint;
-type SanitizeApiParams = ToolApiParams[typeof ENDPOINT];
+// BYPASS: operação ainda não portada para o motor local (WASM).
+// Devolve o arquivo original sem alteração, só pra não quebrar o fluxo da UI.
+const customProcessor = async (
+  _parameters: SanitizeParameters,
+  files: File[],
+): Promise<CustomProcessorResult> => {
+  console.warn('[sanitize] operação ainda não implementada localmente — bypass ativo, arquivo devolvido sem alteração');
+  return { files, consumedAllInputs: true };
+};
 
-// Convert the tool's UI parameters into the sanitize-pdf request body. The
-// return type is the generated backend model, so a spec change that renames or
-// drops a field breaks the build here.
-export const sanitizeToApiParams = (
-  parameters: SanitizeParameters,
-): SanitizeApiParams => ({
-  removeJavaScript: parameters.removeJavaScript ?? false,
-  removeEmbeddedFiles: parameters.removeEmbeddedFiles ?? false,
-  removeXMPMetadata: parameters.removeXMPMetadata ?? false,
-  removeMetadata: parameters.removeMetadata ?? false,
-  removeLinks: parameters.removeLinks ?? false,
-  removeFonts: parameters.removeFonts ?? false,
-});
-
-// Reconstruct the tool's UI parameters from a sanitize-pdf request body, so a
-// stored or AI-authored step can be re-rendered in the settings UI.
-export const sanitizeFromApiParams = (
-  apiParams: SanitizeApiParams,
-): Partial<SanitizeParameters> => ({
-  removeJavaScript:
-    apiParams.removeJavaScript ?? defaultParameters.removeJavaScript,
-  removeEmbeddedFiles:
-    apiParams.removeEmbeddedFiles ?? defaultParameters.removeEmbeddedFiles,
-  removeXMPMetadata:
-    apiParams.removeXMPMetadata ?? defaultParameters.removeXMPMetadata,
-  removeMetadata: apiParams.removeMetadata ?? defaultParameters.removeMetadata,
-  removeLinks: apiParams.removeLinks ?? defaultParameters.removeLinks,
-  removeFonts: apiParams.removeFonts ?? defaultParameters.removeFonts,
-});
-
-// Static function that can be used by both the hook and automation executor
-export const buildSanitizeFormData = (
-  parameters: SanitizeParameters,
-  file: File,
-): FormData =>
-  objectToFormData(sanitizeToApiParams(parameters), { fileInput: file });
-
-// Static configuration object
-export const sanitizeOperationConfig = defineSingleFileTool({
-  buildFormData: buildSanitizeFormData,
-  toApiParams: sanitizeToApiParams,
-  fromApiParams: sanitizeFromApiParams,
+export const sanitizeOperationConfig = defineCustomTool({
+  customProcessor,
   operationType: "sanitize",
-  endpoint: ENDPOINT,
-  defaultParameters,
+  filePrefix: "sanitize_",
 });
 
 export const useSanitizeOperation = () => {

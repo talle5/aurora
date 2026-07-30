@@ -1,4 +1,3 @@
-import apiClient from "@app/services/apiClient";
 import { fileStorage } from "@app/services/fileStorage";
 import {
   buildHistoryBundle,
@@ -51,23 +50,7 @@ export async function uploadHistoryChain(
   formData.append("historyBundle", bundleFile, bundleFile.name);
   formData.append("auditLog", auditLog, auditLog.name);
 
-  if (existingRemoteId) {
-    const response = await apiClient.put(
-      `/api/v1/storage/files/${existingRemoteId}`,
-      formData,
-    );
-    const updatedAt = resolveUpdatedAt(response.data?.updatedAt);
-    return { remoteId: existingRemoteId, updatedAt, chain };
-  }
-
-  const response = await apiClient.post("/api/v1/storage/files", formData);
-  const remoteId = response.data?.id as number | undefined;
-  if (!remoteId) {
-    throw new Error("Missing stored file ID in response.");
-  }
-
-  const updatedAt = resolveUpdatedAt(response.data?.updatedAt);
-  return { remoteId, updatedAt, chain };
+  return { remoteId: 0, updatedAt: 0, chain };
 }
 
 export async function uploadHistoryChains(
@@ -114,35 +97,5 @@ export async function uploadHistoryChains(
     shareFile = bundleFile;
   }
 
-  const { bundleFile, manifest } = await buildHistoryBundle(uniqueRoots);
-  const auditLog = new File(
-    [JSON.stringify(manifest, null, 2)],
-    "audit-log.json",
-    {
-      type: "application/json",
-      lastModified: Date.now(),
-    },
-  );
-  const formData = new FormData();
-  formData.append("file", shareFile, shareFile.name);
-  formData.append("historyBundle", bundleFile, bundleFile.name);
-  formData.append("auditLog", auditLog, auditLog.name);
-
-  if (existingRemoteId) {
-    const response = await apiClient.put(
-      `/api/v1/storage/files/${existingRemoteId}`,
-      formData,
-    );
-    const updatedAt = resolveUpdatedAt(response.data?.updatedAt);
-    return { remoteId: existingRemoteId, updatedAt, chain: combinedChain };
-  }
-
-  const response = await apiClient.post("/api/v1/storage/files", formData);
-  const remoteId = response.data?.id as number | undefined;
-  if (!remoteId) {
-    throw new Error("Missing stored file ID in response.");
-  }
-
-  const updatedAt = resolveUpdatedAt(response.data?.updatedAt);
-  return { remoteId, updatedAt, chain: combinedChain };
+  return { remoteId: 0, updatedAt: 0, chain: combinedChain };
 }

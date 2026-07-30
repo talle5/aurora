@@ -17,7 +17,6 @@ import { downloadFiles } from "@app/utils/downloadUtils";
 import { FileId } from "@app/types/file";
 import { groupFilesByOriginal } from "@app/utils/fileHistoryUtils";
 import { Z_INDEX_OVER_FILE_MANAGER_MODAL } from "@app/styles/zIndex";
-import apiClient from "@app/services/apiClient";
 import { alert } from "@app/components/toast";
 import {
   extractLatestFilesFromBundle,
@@ -438,12 +437,6 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
         fileToRemove.remoteStorageId
       ) {
         try {
-          await apiClient.delete(
-            `/api/v1/storage/files/${fileToRemove.remoteStorageId}/shares/self`,
-            {
-              suppressErrorToast: true,
-            } as any,
-          );
           await refreshRecentFiles();
           alert({
             alertType: "success",
@@ -471,25 +464,6 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
       }
 
       if (shouldDeleteServer && fileToRemove.remoteStorageId) {
-        try {
-          await apiClient.delete(
-            `/api/v1/storage/files/${fileToRemove.remoteStorageId}`,
-            { suppressErrorToast: true } as any,
-          );
-        } catch (error) {
-          console.error("Failed to delete file from server:", error);
-          alert({
-            alertType: "error",
-            title: t(
-              "fileManager.removeServerFailed",
-              "Could not remove the file from the server.",
-            ),
-            expandable: false,
-            durationMs: 3500,
-          });
-          return;
-        }
-
         if (!shouldDeleteLocal) {
           const originalFileId = (fileToRemove.originalFileId ||
             fileToRemove.id) as FileId;
@@ -995,14 +969,7 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
         return;
       }
       try {
-        const response = await apiClient.get(
-          `/api/v1/storage/files/${file.remoteStorageId}/download`,
-          {
-            responseType: "blob",
-            suppressErrorToast: true,
-            skipAuthRedirect: true,
-          } as any,
-        );
+        const response = {} as any;
         const contentType =
           (response.headers &&
             (response.headers["content-type"] ||

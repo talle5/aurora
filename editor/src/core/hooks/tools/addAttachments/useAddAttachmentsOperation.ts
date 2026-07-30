@@ -1,55 +1,23 @@
 import { useTranslation } from "react-i18next";
-import {
-  useToolOperation,
-  defineSingleFileTool,
-} from "@app/hooks/tools/shared/useToolOperation";
-
+import { useToolOperation } from "@app/hooks/tools/shared/useToolOperation";
 import { createStandardErrorHandler } from "@app/utils/toolErrorHandler";
-import {
-  AddAttachmentsParameters,
-  DEFAULT_ADD_ATTACHMENTS_PARAMETERS,
-} from "@app/hooks/tools/addAttachments/useAddAttachmentsParameters";
+import { CustomProcessorResult, defineCustomTool } from "@app/tools/shared/toolOperationTypes";
+import { AddAttachmentsParameters } from "@app/hooks/tools/addAttachments/useAddAttachmentsParameters";
 
-const ENDPOINT = "/api/v1/misc/add-attachments" satisfies ToolEndpoint;
-type AddAttachmentsApiParams = ToolApiParams[typeof ENDPOINT];
+// BYPASS: operação ainda não portada para o motor local (WASM).
+// Devolve o arquivo original sem alteração, só pra não quebrar o fluxo da UI.
+const customProcessor = async (
+  _parameters: AddAttachmentsParameters,
+  files: File[],
+): Promise<CustomProcessorResult> => {
+  console.warn('[addAttachments] operação ainda não implementada localmente — bypass ativo, arquivo devolvido sem alteração');
+  return { files, consumedAllInputs: true };
+};
 
-// Convert the tool's UI parameters into the add-attachments request body. The
-// attachment files are uploaded via the named "attachments" field (see
-// buildFormData); the model lists them but they are not scalar parameters.
-export const addAttachmentsToApiParams = (
-  parameters: AddAttachmentsParameters,
-): AddAttachmentsApiParams => ({
-  attachments: [],
-  convertToPdfA3b: parameters.convertToPdfA3b,
-});
-
-// Reconstruct the tool's UI parameters from an add-attachments request body (the
-// attachment files themselves are not recoverable from stored parameters).
-export const addAttachmentsFromApiParams = (
-  apiParams: AddAttachmentsApiParams,
-): Partial<AddAttachmentsParameters> => ({
-  convertToPdfA3b:
-    apiParams.convertToPdfA3b ??
-    DEFAULT_ADD_ATTACHMENTS_PARAMETERS.convertToPdfA3b,
-});
-
-const buildFormData = (
-  parameters: AddAttachmentsParameters,
-  file: File,
-): FormData =>
-  objectToFormData(addAttachmentsToApiParams(parameters), {
-    fileInput: file,
-    attachments: (parameters.attachments || []).filter(Boolean),
-  });
-
-// Operation configuration for automation
-export const addAttachmentsOperationConfig = defineSingleFileTool({
-  buildFormData,
-  toApiParams: addAttachmentsToApiParams,
-  fromApiParams: addAttachmentsFromApiParams,
+export const addAttachmentsOperationConfig = defineCustomTool({
+  customProcessor,
   operationType: "addAttachments",
-  endpoint: ENDPOINT,
-  defaultParameters: DEFAULT_ADD_ATTACHMENTS_PARAMETERS,
+  filePrefix: "addAttachments_",
 });
 
 export const useAddAttachmentsOperation = () => {
@@ -58,10 +26,7 @@ export const useAddAttachmentsOperation = () => {
   return useToolOperation<AddAttachmentsParameters>({
     ...addAttachmentsOperationConfig,
     getErrorMessage: createStandardErrorHandler(
-      t(
-        "addAttachments.error.failed",
-        "An error occurred while adding attachments to the PDF.",
-      ),
+      t("addAttachments.error.failed", "An error occurred while adding attachments to the PDF."),
     ),
   });
 };

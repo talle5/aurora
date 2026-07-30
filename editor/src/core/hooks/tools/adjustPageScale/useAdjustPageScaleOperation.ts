@@ -1,45 +1,32 @@
 import { useTranslation } from "react-i18next";
-import {
-  useToolOperation,
-  defineSingleFileTool,
-} from "@app/hooks/tools/shared/useToolOperation";
+import { useToolOperation } from "@app/hooks/tools/shared/useToolOperation";
 import { createStandardErrorHandler } from "@app/utils/toolErrorHandler";
-import {
-  AdjustPageScaleParameters,
-  defaultParameters,
-} from "@app/hooks/tools/adjustPageScale/useAdjustPageScaleParameters";
-import {
-  buildAdjustPageScaleFormData,
-  adjustPageScaleToApiParams,
-  adjustPageScaleFromApiParams,
-  ADJUST_PAGE_SCALE_ENDPOINT,
-} from "@app/hooks/tools/adjustPageScale/adjustPageScaleFormData";
+import { CustomProcessorResult, defineCustomTool } from "@app/tools/shared/toolOperationTypes";
+import { AdjustPageScaleParameters } from "@app/hooks/tools/adjustPageScale/useAdjustPageScaleParameters";
 
-export {
-  buildAdjustPageScaleFormData,
-  adjustPageScaleToApiParams,
-  adjustPageScaleFromApiParams,
+// BYPASS: operação ainda não portada para o motor local (WASM).
+// Devolve o arquivo original sem alteração, só pra não quebrar o fluxo da UI.
+const customProcessor = async (
+  _parameters: AdjustPageScaleParameters,
+  files: File[],
+): Promise<CustomProcessorResult> => {
+  console.warn('[scalePages] operação ainda não implementada localmente — bypass ativo, arquivo devolvido sem alteração');
+  return { files, consumedAllInputs: true };
 };
 
-export const adjustPageScaleOperationConfig = defineSingleFileTool({
-  buildFormData: buildAdjustPageScaleFormData,
-  toApiParams: adjustPageScaleToApiParams,
-  fromApiParams: adjustPageScaleFromApiParams,
+export const adjustPageScaleOperationConfig = defineCustomTool({
+  customProcessor,
   operationType: "scalePages",
-  endpoint: ADJUST_PAGE_SCALE_ENDPOINT,
-  defaultParameters,
+  filePrefix: "scalePages_",
 });
 
-export const useAdjustPageScaleOperation = () => {
+export const useScalePagesOperation = () => {
   const { t } = useTranslation();
 
   return useToolOperation<AdjustPageScaleParameters>({
     ...adjustPageScaleOperationConfig,
     getErrorMessage: createStandardErrorHandler(
-      t(
-        "adjustPageScale.error.failed",
-        "An error occurred while adjusting the page scale.",
-      ),
+      t("adjustPageScale.error.failed", "An error occurred while adjusting the page scale."),
     ),
   });
 };

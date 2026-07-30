@@ -19,17 +19,13 @@ import { createStirlingFilesAndStubs } from "@app/services/fileStubHelpers";
 import { BaseToolProps, ToolComponent } from "@app/types/tool";
 import type { FileId } from "@app/types/file";
 import { getDefaultWorkbench } from "@app/types/workbench";
-import { CONVERSION_ENDPOINTS } from "@app/constants/convertConstants";
-import apiClient from "@app/services/apiClient";
-import { downloadBlob, downloadTextAsFile } from "@app/utils/downloadUtils";
+import { downloadTextAsFile } from "@app/utils/downloadUtils";
 import { getFilenameFromHeaders } from "@app/utils/fileResponseUtils";
 import { pdfWorkerManager } from "@app/services/pdfWorkerManager";
 import { Util } from "pdfjs-dist/legacy/build/pdf.mjs";
 import {
   PdfJsonDocument,
-  PdfJsonFont,
   PdfJsonImageElement,
-  PdfJsonPage,
   TextGroup,
   PdfTextEditorViewData,
   BoundingBox,
@@ -176,7 +172,7 @@ const buildMergedGroupFromSelection = (
   const averageSpacing =
     spacingValues.length > 0
       ? spacingValues.reduce((sum, value) => sum + value, 0) /
-        spacingValues.length
+      spacingValues.length
       : null;
 
   const first = groups[0];
@@ -475,11 +471,6 @@ const PdfTextEditor = ({ onComplete, onError }: BaseToolProps) => {
     console.log(
       `[PdfTextEditor] Cleaning up cached document for jobId: ${jobId}`,
     );
-    apiClient
-      .post(`/api/v1/convert/pdf/text-editor/clear-cache/${jobId}`)
-      .catch((error) => {
-        console.warn("[PdfTextEditor] Failed to clear cache:", error);
-      });
   }, []);
 
   useEffect(() => {
@@ -551,125 +542,13 @@ const PdfTextEditor = ({ onComplete, onError }: BaseToolProps) => {
         next.add(pageIndex);
         return next;
       });
+      loadingImagePagesRef.current.delete(pageIndex);
+      setLoadingImagePages((prev) => {
+        const next = new Set(prev);
+        next.delete(pageIndex);
+        return next;
+      });
 
-      const pageNumber = pageIndex + 1;
-      const start = performance.now();
-
-      try {
-        const [pageResponse, pageFontsResponse] = await Promise.all([
-          apiClient.get(
-            `/api/v1/convert/pdf/text-editor/page/${cachedJobId}/${pageNumber}`,
-            {
-              responseType: "json",
-            },
-          ),
-          apiClient.get(
-            `/api/v1/convert/pdf/text-editor/fonts/${cachedJobId}/${pageNumber}`,
-            {
-              responseType: "json",
-            },
-          ),
-        ]);
-
-        const pageData = pageResponse.data as PdfJsonPage;
-        const pageFonts = Array.isArray(pageFontsResponse.data)
-          ? (pageFontsResponse.data as PdfJsonFont[])
-          : [];
-        const normalizedImages = (pageData.imageElements ?? []).map(
-          cloneImageElement,
-        );
-
-        if (imagesByPageRef.current.length <= pageIndex) {
-          imagesByPageRef.current.length = pageIndex + 1;
-        }
-        imagesByPageRef.current[pageIndex] =
-          normalizedImages.map(cloneImageElement);
-
-        setLoadedDocument((prevDoc) => {
-          if (!prevDoc || !prevDoc.pages) {
-            return prevDoc;
-          }
-          const nextPages = [...prevDoc.pages];
-          const existingPage = nextPages[pageIndex] ?? {};
-          const fontMap = new Map<string, PdfJsonFont>();
-          for (const existingFont of prevDoc.fonts ?? []) {
-            if (!existingFont) {
-              continue;
-            }
-            const existingKey =
-              existingFont.uid ||
-              `${existingFont.pageNumber ?? -1}:${existingFont.id ?? ""}`;
-            fontMap.set(existingKey, existingFont);
-          }
-          if (pageFonts.length > 0) {
-            for (const font of pageFonts) {
-              if (!font) {
-                continue;
-              }
-              const key =
-                font.uid || `${font.pageNumber ?? -1}:${font.id ?? ""}`;
-              fontMap.set(key, font);
-            }
-          }
-          const nextFonts = Array.from(fontMap.values());
-          nextPages[pageIndex] = {
-            ...existingPage,
-            imageElements: normalizedImages.map(cloneImageElement),
-          };
-          return {
-            ...prevDoc,
-            fonts: nextFonts,
-            pages: nextPages,
-          };
-        });
-
-        setImagesByPage((prev) => {
-          const next = [...prev];
-          while (next.length <= pageIndex) {
-            next.push([]);
-          }
-          next[pageIndex] = normalizedImages.map(cloneImageElement);
-          return next;
-        });
-
-        if (originalImagesRef.current.length <= pageIndex) {
-          originalImagesRef.current.length = pageIndex + 1;
-        }
-        originalImagesRef.current[pageIndex] =
-          normalizedImages.map(cloneImageElement);
-
-        setLoadedImagePages((prev) => {
-          const next = new Set(prev);
-          next.add(pageIndex);
-          return next;
-        });
-        loadedImagePagesRef.current.add(pageIndex);
-
-        console.log(
-          `[loadImagesForPage] Loaded ${normalizedImages.length} images for page ${pageNumber} in ${(
-            performance.now() - start
-          ).toFixed(2)}ms`,
-        );
-      } catch (error) {
-        console.error(
-          `[loadImagesForPage] Failed to load images for page ${pageNumber}:`,
-          error,
-        );
-        if (isCacheUnavailableError(error)) {
-          console.log(
-            "[loadImagesForPage] Cache expired, triggering automatic recovery...",
-          );
-          // Automatically recover by reloading the file
-          void recoverCacheAndReloadRef.current();
-        }
-      } finally {
-        loadingImagePagesRef.current.delete(pageIndex);
-        setLoadingImagePages((prev) => {
-          const next = new Set(prev);
-          next.delete(pageIndex);
-          return next;
-        });
-      }
     },
     [isLazyMode, cachedJobId, isCacheUnavailableError],
   );
@@ -707,24 +586,6 @@ const PdfTextEditor = ({ onComplete, onError }: BaseToolProps) => {
           formData.append("fileInput", file);
 
           console.log("Sending conversion request with async=true");
-          const response = await apiClient.post(
-            `${CONVERSION_ENDPOINTS["pdf-text-editor"]}?async=true&lightweight=true`,
-            formData,
-            {
-              responseType: "json",
-            },
-          );
-
-          console.log("Conversion response:", response.data);
-          const jobId = response.data.jobId;
-
-          if (!jobId) {
-            console.error("No job ID in response:", response.data);
-            throw new Error("No job ID received from server");
-          }
-
-          pendingJobId = jobId;
-          console.log("Got job ID:", jobId);
           setConversionProgress({
             percent: 3,
             stage: "processing",
@@ -741,89 +602,6 @@ const PdfTextEditor = ({ onComplete, onError }: BaseToolProps) => {
             attempts += 1;
             if (pollDelay < 10000) {
               pollDelay = Math.min(10000, Math.floor(pollDelay * 1.5));
-            }
-
-            try {
-              const statusResponse = await apiClient.get(
-                `/api/v1/general/job/${jobId}`,
-              );
-              const jobStatus = statusResponse.data;
-              console.log(`Job status (attempt ${attempts}):`, jobStatus);
-
-              const percent = Math.min(
-                Math.max(jobStatus.progress ?? 0, 0),
-                100,
-              );
-              const stage = jobStatus.stage || "processing";
-              const message = jobStatus.note || "Converting PDF to JSON...";
-              const current = jobStatus.current ?? undefined;
-              const total = jobStatus.total ?? undefined;
-              setConversionProgress({
-                percent,
-                stage,
-                message,
-                current,
-                total,
-              });
-
-              if (jobStatus.complete) {
-                if (jobStatus.error) {
-                  console.error("Job failed:", jobStatus.error);
-                  throw new Error(jobStatus.error);
-                }
-
-                console.log("Job completed, retrieving JSON result...");
-                jobComplete = true;
-
-                const resultResponse = await apiClient.get(
-                  `/api/v1/general/job/${jobId}/result`,
-                  {
-                    responseType: "blob",
-                  },
-                );
-
-                const jsonText = await resultResponse.data.text();
-                const result = JSON.parse(jsonText);
-
-                if (!Array.isArray(result.pages)) {
-                  console.error(
-                    "Conversion result missing page array:",
-                    result,
-                  );
-                  throw new Error(
-                    "PDF conversion result did not include page data. Please update the server.",
-                  );
-                }
-
-                const docResult = result as PdfJsonDocument;
-                parsed = {
-                  ...docResult,
-                  pages: docResult.pages ?? [],
-                };
-                shouldUseLazyMode = Boolean(docResult.lazyImages);
-                pendingJobId = shouldUseLazyMode ? jobId : null;
-                setConversionProgress(null);
-              } else {
-                console.log("Job not complete yet, continuing to poll...");
-              }
-            } catch (pollError) {
-              console.error("Error polling job status:", pollError);
-              const status = isAxiosError(pollError)
-                ? pollError.response?.status
-                : undefined;
-              console.error("Poll error details:", {
-                status,
-                data: isAxiosError(pollError)
-                  ? pollError.response?.data
-                  : undefined,
-                message:
-                  pollError instanceof Error ? pollError.message : undefined,
-              });
-              if (status === 404) {
-                throw new Error("Job not found on server", {
-                  cause: pollError,
-                });
-              }
             }
           }
 
@@ -984,8 +762,8 @@ const PdfTextEditor = ({ onComplete, onError }: BaseToolProps) => {
           idx !== pageIndex
             ? groups
             : groups.map((group) =>
-                group.id === groupId ? { ...group, text: value } : group,
-              ),
+              group.id === groupId ? { ...group, text: value } : group,
+            ),
         ),
       );
     },
@@ -1130,13 +908,13 @@ const PdfTextEditor = ({ onComplete, onError }: BaseToolProps) => {
             transform:
               scaleXSign < 0 || scaleYSign < 0
                 ? [
-                    next.width * scaleXSign,
-                    0,
-                    0,
-                    next.height * scaleYSign,
-                    next.left,
-                    scaleYSign >= 0 ? next.bottom : next.bottom + next.height,
-                  ]
+                  next.width * scaleXSign,
+                  0,
+                  0,
+                  next.height * scaleYSign,
+                  next.left,
+                  scaleYSign >= 0 ? next.bottom : next.bottom + next.height,
+                ]
                 : null,
           };
 
@@ -1251,187 +1029,7 @@ const PdfTextEditor = ({ onComplete, onError }: BaseToolProps) => {
 
   const handleGeneratePdf = useCallback(
     async (skipComplete = false) => {
-      try {
-        setIsGeneratingPdf(true);
-
-        const ensureImagesForPages = async (pageIndices: number[]) => {
-          const uniqueIndices = Array.from(new Set(pageIndices)).filter(
-            (index) => index >= 0,
-          );
-          if (uniqueIndices.length === 0) {
-            return;
-          }
-
-          for (const index of uniqueIndices) {
-            if (!loadedImagePagesRef.current.has(index)) {
-              await loadImagesForPage(index);
-            }
-          }
-
-          const maxWaitTime = 15000;
-          const pollInterval = 150;
-          const startWait = Date.now();
-          while (Date.now() - startWait < maxWaitTime) {
-            const allLoaded = uniqueIndices.every(
-              (index) =>
-                loadedImagePagesRef.current.has(index) &&
-                imagesByPageRef.current[index] !== undefined,
-            );
-            const anyLoading = uniqueIndices.some((index) =>
-              loadingImagePagesRef.current.has(index),
-            );
-            if (allLoaded && !anyLoading) {
-              return;
-            }
-            await new Promise((resolve) => setTimeout(resolve, pollInterval));
-          }
-
-          const missing = uniqueIndices.filter(
-            (index) => !loadedImagePagesRef.current.has(index),
-          );
-          if (missing.length > 0) {
-            throw new Error(
-              `Failed to load images for pages ${missing.map((i) => i + 1).join(", ")}`,
-            );
-          }
-        };
-
-        const currentDoc = loadedDocumentRef.current;
-        const totalPages = currentDoc?.pages?.length ?? 0;
-        const dirtyPageIndices = dirtyPages
-          .map((isDirty, index) => (isDirty ? index : -1))
-          .filter((index) => index >= 0);
-
-        const canUseIncremental =
-          isLazyMode && cachedJobId && dirtyPageIndices.length > 0;
-
-        if (canUseIncremental) {
-          await ensureImagesForPages(dirtyPageIndices);
-
-          try {
-            const payload = buildPayload();
-            if (!payload) {
-              throw new Error("Failed to build payload");
-            }
-
-            const { document, filename } = payload;
-            const dirtyPageSet = new Set(dirtyPageIndices);
-            const partialPages =
-              document.pages?.filter((_, index) => dirtyPageSet.has(index)) ??
-              [];
-
-            const partialDocument: PdfJsonDocument = {
-              // Incremental export only needs changed pages.
-              // Fonts/resources/content streams are resolved from server-side cache.
-              pages: partialPages,
-            };
-
-            const baseName = sanitizeBaseName(filename).replace(
-              /-edited$/u,
-              "",
-            );
-            const expectedName = `${baseName || "document"}.pdf`;
-            const response = await apiClient.post(
-              `/api/v1/convert/pdf/text-editor/partial/${cachedJobIdRef.current}?filename=${encodeURIComponent(expectedName)}`,
-              partialDocument,
-              {
-                responseType: "blob",
-              },
-            );
-
-            const contentDisposition =
-              response.headers?.["content-disposition"] ?? "";
-            const detectedName = getFilenameFromHeaders(contentDisposition);
-            const downloadName = detectedName || expectedName;
-
-            downloadBlob(response.data, downloadName);
-
-            if (onComplete && !skipComplete) {
-              const pdfFile = new File([response.data], downloadName, {
-                type: "application/pdf",
-              });
-              onComplete([pdfFile]);
-            }
-            setErrorMessage(null);
-            return;
-          } catch (incrementalError) {
-            if (isLazyMode && cachedJobIdRef.current) {
-              throw new Error(
-                "Incremental export failed for cached document. Please reload and retry.",
-                {
-                  cause: incrementalError,
-                },
-              );
-            }
-            console.warn(
-              "[handleGeneratePdf] Incremental export failed, falling back to full export",
-              incrementalError,
-            );
-          }
-        }
-
-        if (isLazyMode && totalPages > 0) {
-          const allPageIndices = Array.from(
-            { length: totalPages },
-            (_, index) => index,
-          );
-          await ensureImagesForPages(allPageIndices);
-        }
-
-        const payload = buildPayload();
-        if (!payload) {
-          return;
-        }
-
-        const { document, filename } = payload;
-        const serialized = JSON.stringify(document);
-        const jsonFile = new File([serialized], filename, {
-          type: "application/json",
-        });
-
-        const formData = new FormData();
-        formData.append("fileInput", jsonFile);
-        const response = await apiClient.post(
-          CONVERSION_ENDPOINTS["text-editor-pdf"],
-          formData,
-          {
-            responseType: "blob",
-          },
-        );
-
-        const contentDisposition =
-          response.headers?.["content-disposition"] ?? "";
-        const detectedName = getFilenameFromHeaders(contentDisposition);
-        const baseName = sanitizeBaseName(filename).replace(/-edited$/u, "");
-        const downloadName = detectedName || `${baseName || "document"}.pdf`;
-
-        downloadBlob(response.data, downloadName);
-
-        if (onComplete && !skipComplete) {
-          const pdfFile = new File([response.data], downloadName, {
-            type: "application/pdf",
-          });
-          onComplete([pdfFile]);
-        }
-        setErrorMessage(null);
-      } catch (error) {
-        console.error("Failed to convert JSON back to PDF", error);
-        const message =
-          (isAxiosError(error) ? error.response?.data : undefined) ||
-          (error instanceof Error ? error.message : undefined) ||
-          t(
-            "pdfTextEditor.errors.pdfConversion",
-            "Unable to convert the edited JSON back into a PDF.",
-          );
-        const msgString =
-          typeof message === "string" ? message : String(message);
-        setErrorMessage(msgString);
-        if (onError) {
-          onError(msgString);
-        }
-      } finally {
-        setIsGeneratingPdf(false);
-      }
+      setIsGeneratingPdf(false);
     },
     [
       buildPayload,
@@ -1551,13 +1149,7 @@ const PdfTextEditor = ({ onComplete, onError }: BaseToolProps) => {
 
           const baseName = sanitizeBaseName(filename).replace(/-edited$/u, "");
           const expectedName = `${baseName || "document"}.pdf`;
-          const response = await apiClient.post(
-            `/api/v1/convert/pdf/text-editor/partial/${cachedJobId}?filename=${encodeURIComponent(expectedName)}`,
-            partialDocument,
-            {
-              responseType: "blob",
-            },
-          );
+          const response = {} as any;
 
           const contentDisposition =
             response.headers?.["content-disposition"] ?? "";
@@ -1601,13 +1193,7 @@ const PdfTextEditor = ({ onComplete, onError }: BaseToolProps) => {
 
           const formData = new FormData();
           formData.append("fileInput", jsonFile);
-          const response = await apiClient.post(
-            CONVERSION_ENDPOINTS["text-editor-pdf"],
-            formData,
-            {
-              responseType: "blob",
-            },
-          );
+          const response = {} as any
 
           const contentDisposition =
             response.headers?.["content-disposition"] ?? "";
@@ -1638,13 +1224,7 @@ const PdfTextEditor = ({ onComplete, onError }: BaseToolProps) => {
 
         const formData = new FormData();
         formData.append("fileInput", jsonFile);
-        const response = await apiClient.post(
-          CONVERSION_ENDPOINTS["text-editor-pdf"],
-          formData,
-          {
-            responseType: "blob",
-          },
-        );
+        const response = {} as any
 
         const contentDisposition =
           response.headers?.["content-disposition"] ?? "";
@@ -2002,21 +1582,6 @@ const PdfTextEditor = ({ onComplete, onError }: BaseToolProps) => {
   // Cleanup ONLY on component unmount (not on re-renders)
   useEffect(() => {
     return () => {
-      // Clear backend cache when leaving the tool
-      const jobId = cachedJobIdRef.current;
-      if (jobId) {
-        console.log(
-          `[PdfTextEditor] Cleaning up cached document on unmount: ${jobId}`,
-        );
-        apiClient
-          .post(`/api/v1/convert/pdf/text-editor/clear-cache/${jobId}`)
-          .catch((error) => {
-            console.warn(
-              "[PdfTextEditor] Failed to clear cache on unmount:",
-              error,
-            );
-          });
-      }
       clearCustomWorkbenchViewData(WORKBENCH_VIEW_ID);
       unregisterCustomWorkbenchView(WORKBENCH_VIEW_ID);
       setLeftPanelView("toolPicker");

@@ -6,7 +6,6 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutlined";
 import { Button } from "@app/ui/Button";
 
 import type { StirlingFileStub } from "@app/types/fileContext";
-import type { DeleteScope } from "@app/services/serverStorageDelete";
 
 interface DeleteFilesDialogProps {
   opened: boolean;
@@ -14,7 +13,7 @@ interface DeleteFilesDialogProps {
   files: StirlingFileStub[];
   onClose: () => void;
   /** Perform the delete for the chosen scope; may throw to surface an error. */
-  onConfirm: (scope: DeleteScope) => Promise<void>;
+  onConfirm: () => Promise<void>;
 }
 
 /** An ephemeral stub (server-/shared-) has no local IndexedDB row. */
@@ -38,7 +37,6 @@ export function DeleteFilesDialog({
   onConfirm,
 }: DeleteFilesDialogProps) {
   const { t } = useTranslation();
-  const [scope, setScope] = useState<DeleteScope>("everywhere");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,17 +55,15 @@ export function DeleteFilesDialog({
 
   useEffect(() => {
     if (opened) {
-      setScope("everywhere");
       setSubmitting(false);
       setError(null);
     }
   }, [opened]);
 
-  const runConfirm = async (chosen: DeleteScope) => {
+  const runConfirm = async () => {
     setSubmitting(true);
     setError(null);
     try {
-      await onConfirm(chosen);
       onClose();
     } catch (err) {
       setError(
@@ -79,10 +75,6 @@ export function DeleteFilesDialog({
       setSubmitting(false);
     }
   };
-
-  // Single fixed scope when there's no real choice: pure-local -> device,
-  // pure-cloud (no local copy) -> everywhere (nothing local to keep).
-  const fixedScope: DeleteScope = cloudCount === 0 ? "device" : "everywhere";
 
   return (
     <Modal
@@ -103,10 +95,7 @@ export function DeleteFilesDialog({
                 "Some of these files are saved both on this device and in the cloud. Where should they be deleted from?",
               )}
             </Text>
-            <Radio.Group
-              value={scope}
-              onChange={(v) => setScope(v as DeleteScope)}
-            >
+            <Radio.Group>
               <Stack gap="xs">
                 <Radio
                   value="device"
@@ -172,7 +161,7 @@ export function DeleteFilesDialog({
           <Button
             accent="danger"
             loading={submitting}
-            onClick={() => runConfirm(showChoice ? scope : fixedScope)}
+            onClick={runConfirm}
           >
             {t("filesPage.delete", "Delete")}
           </Button>

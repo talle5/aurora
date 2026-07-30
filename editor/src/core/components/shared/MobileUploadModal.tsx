@@ -11,7 +11,6 @@ import { Z_INDEX_OVER_FILE_MANAGER_MODAL } from "@app/styles/zIndex";
 import { BASE_PATH } from "@app/constants/app";
 import { buildMobileScannerUrl } from "@app/utils/mobileScannerUrl";
 import { convertImageToPdf, isImageFile } from "@app/utils/imageToPdfUtils";
-import apiClient from "@app/services/apiClient";
 
 interface MobileUploadModalProps {
   opened: boolean;
@@ -99,13 +98,7 @@ export default function MobileUploadModal({
   const createSession = useCallback(
     async (newSessionId: string) => {
       try {
-        const response = await apiClient.post<SessionInfo>(
-          `/api/v1/mobile-scanner/create-session/${newSessionId}`,
-          undefined,
-          {
-            responseType: "json",
-          },
-        );
+        const response = {} as any;
 
         if (!response.status || response.status !== 200) {
           throw new Error("Failed to create session");
@@ -139,9 +132,7 @@ export default function MobileUploadModal({
     if (!opened) return;
 
     try {
-      const response = await apiClient.get(
-        `/api/v1/mobile-scanner/files/${sessionId}`,
-      );
+      const response = {} as any;
       if (!response.status || response.status !== 200) {
         throw new Error("Failed to check for files");
       }
@@ -157,12 +148,7 @@ export default function MobileUploadModal({
       if (newFiles.length > 0) {
         for (const fileMetadata of newFiles) {
           try {
-            const downloadResponse = await apiClient.get(
-              `/api/v1/mobile-scanner/download/${sessionId}/${fileMetadata.filename}`,
-              {
-                responseType: "blob",
-              },
-            );
+            const downloadResponse = {} as any;
 
             if (downloadResponse.status === 200) {
               const blob = downloadResponse.data;
@@ -213,20 +199,6 @@ export default function MobileUploadModal({
             );
           }
         }
-
-        // Delete the entire session immediately after downloading all files
-        // This ensures files are only on server for ~1 second
-        try {
-          await apiClient.delete(`/api/v1/mobile-scanner/session/${sessionId}`);
-          console.log(
-            "[MobileUploadModal] Session cleaned up after file download",
-          );
-        } catch (cleanupErr) {
-          console.warn(
-            "[MobileUploadModal] Failed to cleanup session after download:",
-            cleanupErr,
-          );
-        }
       }
     } catch (err) {
       console.error("[MobileUploadModal] Error polling for files:", err);
@@ -256,11 +228,6 @@ export default function MobileUploadModal({
 
     return () => {
       console.log("Cleaning up session on unmount/close:", sessionId);
-      apiClient
-        .delete(`/api/v1/mobile-scanner/session/${sessionId}`)
-        .catch((err) =>
-          console.warn("[MobileUploadModal] Cleanup failed:", err),
-        );
     };
   }, [opened, sessionId, createSession]);
 

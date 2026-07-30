@@ -12,7 +12,6 @@ import { useEditTableOfContentsParameters } from "@app/hooks/tools/editTableOfCo
 import { useEditTableOfContentsOperation } from "@app/hooks/tools/editTableOfContents/useEditTableOfContentsOperation";
 import { BaseToolProps, ToolComponent } from "@app/types/tool";
 import { useBaseTool } from "@app/hooks/tools/shared/useBaseTool";
-import apiClient from "@app/services/apiClient";
 import {
   BookmarkPayload,
   BookmarkNode,
@@ -32,11 +31,7 @@ const extractBookmarks = async (file: File): Promise<BookmarkPayload[]> => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await apiClient.post(
-    "/api/v1/general/extract-bookmarks",
-    formData,
-  );
-
+  const response = {} as any;
   return response.data as BookmarkPayload[];
 };
 

@@ -1,72 +1,32 @@
-import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  useToolOperation,
-  defineSingleFileTool,
-} from "@app/hooks/tools/shared/useToolOperation";
-
+import { useToolOperation } from "@app/hooks/tools/shared/useToolOperation";
 import { createStandardErrorHandler } from "@app/utils/toolErrorHandler";
-import {
-  ExtractImagesParameters,
-  defaultParameters,
-} from "@app/hooks/tools/extractImages/useExtractImagesParameters";
-import { useToolResources } from "@app/hooks/tools/shared/useToolResources";
+import { CustomProcessorResult, defineCustomTool } from "@app/tools/shared/toolOperationTypes";
+import { ExtractImagesParameters } from "@app/hooks/tools/extractImages/useExtractImagesParameters";
 
-const ENDPOINT = "/api/v1/misc/extract-images" satisfies ToolEndpoint;
-type ExtractImagesApiParams = ToolApiParams[typeof ENDPOINT];
+// BYPASS: operação ainda não portada para o motor local (WASM).
+// Devolve o arquivo original sem alteração, só pra não quebrar o fluxo da UI.
+const customProcessor = async (
+  _parameters: ExtractImagesParameters,
+  files: File[],
+): Promise<CustomProcessorResult> => {
+  console.warn('[extractImages] operação ainda não implementada localmente — bypass ativo, arquivo devolvido sem alteração');
+  return { files, consumedAllInputs: true };
+};
 
-// The frontend param type uses "jpg" while the backend model uses "jpeg"; the
-// wire value is preserved verbatim (as the pre-mapper code did) via the cast.
-export const extractImagesToApiParams = (
-  parameters: ExtractImagesParameters,
-): ExtractImagesApiParams => ({
-  format: parameters.format as ExtractImagesApiParams["format"],
-});
-
-export const extractImagesFromApiParams = (
-  apiParams: ExtractImagesApiParams,
-): Partial<ExtractImagesParameters> => ({
-  format: apiParams.format as ExtractImagesParameters["format"],
-});
-
-// Static configuration that can be used by both the hook and automation executor
-export const buildExtractImagesFormData = (
-  parameters: ExtractImagesParameters,
-  file: File,
-): FormData =>
-  objectToFormData(extractImagesToApiParams(parameters), { fileInput: file });
-
-// Static configuration object (without response handler - will be added in hook)
-export const extractImagesOperationConfig = defineSingleFileTool({
-  buildFormData: buildExtractImagesFormData,
-  toApiParams: extractImagesToApiParams,
-  fromApiParams: extractImagesFromApiParams,
+export const extractImagesOperationConfig = defineCustomTool({
+  customProcessor,
   operationType: "extractImages",
-  endpoint: ENDPOINT,
-  defaultParameters,
+  filePrefix: "extractImages_",
 });
 
 export const useExtractImagesOperation = () => {
   const { t } = useTranslation();
-  const { extractZipFiles } = useToolResources();
-
-  // Response handler that respects auto-unzip preferences
-  const responseHandler = useCallback(
-    async (blob: Blob, _originalFiles: File[]): Promise<File[]> => {
-      // Extract images returns a ZIP file - use preference-aware extraction
-      return await extractZipFiles(blob);
-    },
-    [extractZipFiles],
-  );
 
   return useToolOperation<ExtractImagesParameters>({
     ...extractImagesOperationConfig,
-    responseHandler,
     getErrorMessage: createStandardErrorHandler(
-      t(
-        "extractImages.error.failed",
-        "An error occurred while extracting images from the PDF.",
-      ),
+      t("extractImages.error.failed", "An error occurred while extracting images from the PDF."),
     ),
   });
 };

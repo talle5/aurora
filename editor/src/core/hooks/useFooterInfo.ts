@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import apiClient from "@app/services/apiClient";
 
 export interface FooterInfo {
   analyticsEnabled?: boolean;

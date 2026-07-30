@@ -5,7 +5,6 @@ import { Button } from "@app/ui/Button";
 import { useNavigate } from "react-router-dom";
 import { alert } from "@app/components/toast";
 import { UserSummary } from "@app/types/signingSession";
-import apiClient from "@app/services/apiClient";
 
 import { Z_INDEX_OVER_FILE_MANAGER_MODAL } from "@app/styles/zIndex";
 
@@ -28,7 +27,6 @@ const UserSelector = ({
   disabled = false,
 }: UserSelectorProps) => {
   const { t } = useTranslation();
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [selectData, setSelectData] = useState<GroupedData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,13 +35,11 @@ const UserSelector = ({
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await apiClient.get("/api/v1/user/users");
-        console.log("Users API response:", response.data);
-        const fetchedUsers = response.data || [];
+        const fetchedUsers = [];
 
         // Process selectData inside useEffect - group by team
         const usersByTeam: Record<string, SelectItem[]> = {};
-        const currentUserId = user?.id ? parseInt(user.id, 10) : null;
+        const currentUserId = null;
 
         fetchedUsers
           .filter((u: UserSummary) => u && u.userId && u.username)
@@ -94,7 +90,7 @@ const UserSelector = ({
     };
 
     fetchUsers();
-  }, [t, user]);
+  }, [t]);
 
   // Process stringValue when value prop changes
   useEffect(() => {

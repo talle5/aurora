@@ -1,70 +1,23 @@
 import { useTranslation } from "react-i18next";
-import {
-  useToolOperation,
-  defineSingleFileTool,
-} from "@app/hooks/tools/shared/useToolOperation";
-
+import { useToolOperation } from "@app/hooks/tools/shared/useToolOperation";
 import { createStandardErrorHandler } from "@app/utils/toolErrorHandler";
-import {
-  ReplaceColorParameters,
-  defaultParameters,
-} from "@app/hooks/tools/replaceColor/useReplaceColorParameters";
+import { CustomProcessorResult, defineCustomTool } from "@app/tools/shared/toolOperationTypes";
+import { ReplaceColorParameters } from "@app/hooks/tools/replaceColor/useReplaceColorParameters";
 
-const ENDPOINT = "/api/v1/misc/replace-invert-pdf" satisfies ToolEndpoint;
-type ReplaceColorApiParams = ToolApiParams[typeof ENDPOINT];
-
-export const replaceColorToApiParams = (
-  parameters: ReplaceColorParameters,
-): ReplaceColorApiParams => {
-  const apiParams: ReplaceColorApiParams = {
-    replaceAndInvertOption: parameters.replaceAndInvertOption,
-  };
-
-  if (parameters.replaceAndInvertOption === "HIGH_CONTRAST_COLOR") {
-    apiParams.highContrastColorCombination =
-      parameters.highContrastColorCombination;
-  } else if (parameters.replaceAndInvertOption === "CUSTOM_COLOR") {
-    apiParams.textColor = parameters.textColor;
-    apiParams.backGroundColor = parameters.backGroundColor;
-  }
-
-  return apiParams;
+// BYPASS: operação ainda não portada para o motor local (WASM).
+// Devolve o arquivo original sem alteração, só pra não quebrar o fluxo da UI.
+const customProcessor = async (
+  _parameters: ReplaceColorParameters,
+  files: File[],
+): Promise<CustomProcessorResult> => {
+  console.warn('[replaceColor] operação ainda não implementada localmente — bypass ativo, arquivo devolvido sem alteração');
+  return { files, consumedAllInputs: true };
 };
 
-export const replaceColorFromApiParams = (
-  apiParams: ReplaceColorApiParams,
-): Partial<ReplaceColorParameters> => {
-  const result: Partial<ReplaceColorParameters> = {
-    replaceAndInvertOption: apiParams.replaceAndInvertOption,
-  };
-
-  if (apiParams.highContrastColorCombination !== undefined) {
-    result.highContrastColorCombination =
-      apiParams.highContrastColorCombination;
-  }
-  if (apiParams.textColor !== undefined) {
-    result.textColor = apiParams.textColor;
-  }
-  if (apiParams.backGroundColor !== undefined) {
-    result.backGroundColor = apiParams.backGroundColor;
-  }
-
-  return result;
-};
-
-export const buildReplaceColorFormData = (
-  parameters: ReplaceColorParameters,
-  file: File,
-): FormData =>
-  objectToFormData(replaceColorToApiParams(parameters), { fileInput: file });
-
-export const replaceColorOperationConfig = defineSingleFileTool({
-  buildFormData: buildReplaceColorFormData,
-  toApiParams: replaceColorToApiParams,
-  fromApiParams: replaceColorFromApiParams,
+export const replaceColorOperationConfig = defineCustomTool({
+  customProcessor,
   operationType: "replaceColor",
-  endpoint: ENDPOINT,
-  defaultParameters,
+  filePrefix: "replaceColor_",
 });
 
 export const useReplaceColorOperation = () => {
@@ -73,10 +26,7 @@ export const useReplaceColorOperation = () => {
   return useToolOperation<ReplaceColorParameters>({
     ...replaceColorOperationConfig,
     getErrorMessage: createStandardErrorHandler(
-      t(
-        "replaceColor.error.failed",
-        "An error occurred while processing the colour replacement.",
-      ),
+      t("replaceColor.error.failed", "An error occurred while processing the colour replacement."),
     ),
   });
 };

@@ -1,67 +1,23 @@
 import { useTranslation } from "react-i18next";
-import {
-  useToolOperation,
-  defineSingleFileTool,
-} from "@app/hooks/tools/shared/useToolOperation";
-
+import { useToolOperation } from "@app/hooks/tools/shared/useToolOperation";
 import { createStandardErrorHandler } from "@app/utils/toolErrorHandler";
-import {
-  FlattenParameters,
-  defaultParameters,
-} from "@app/hooks/tools/flatten/useFlattenParameters";
+import { CustomProcessorResult, defineCustomTool } from "@app/tools/shared/toolOperationTypes";
+import { FlattenParameters } from "@app/hooks/tools/flatten/useFlattenParameters";
 
-const ENDPOINT = "/api/v1/misc/flatten" satisfies ToolEndpoint;
-type FlattenApiParams = ToolApiParams[typeof ENDPOINT];
-
-// Convert the tool's UI parameters into the flatten request body. The return
-// type is the generated backend model, so a spec change that renames or drops a
-// field breaks the build here.
-export const flattenToApiParams = (
-  parameters: FlattenParameters,
-): FlattenApiParams => {
-  const apiParams: FlattenApiParams = {
-    flattenOnlyForms: parameters.flattenOnlyForms,
-  };
-
-  if (parameters.renderDpi != null) {
-    apiParams.renderDpi = parameters.renderDpi;
-  }
-
-  return apiParams;
+// BYPASS: operação ainda não portada para o motor local (WASM).
+// Devolve o arquivo original sem alteração, só pra não quebrar o fluxo da UI.
+const customProcessor = async (
+  _parameters: FlattenParameters,
+  files: File[],
+): Promise<CustomProcessorResult> => {
+  console.warn('[flatten] operação ainda não implementada localmente — bypass ativo, arquivo devolvido sem alteração');
+  return { files, consumedAllInputs: true };
 };
 
-// Reconstruct the tool's UI parameters from a flatten request body, so a stored
-// or AI-authored step can be re-rendered in the settings UI.
-export const flattenFromApiParams = (
-  apiParams: FlattenApiParams,
-): Partial<FlattenParameters> => {
-  const result: Partial<FlattenParameters> = {
-    flattenOnlyForms:
-      apiParams.flattenOnlyForms ?? defaultParameters.flattenOnlyForms,
-  };
-
-  if (apiParams.renderDpi != null) {
-    result.renderDpi = apiParams.renderDpi;
-  }
-
-  return result;
-};
-
-// Static function that can be used by both the hook and automation executor
-export const buildFlattenFormData = (
-  parameters: FlattenParameters,
-  file: File,
-): FormData =>
-  objectToFormData(flattenToApiParams(parameters), { fileInput: file });
-
-// Static configuration object
-export const flattenOperationConfig = defineSingleFileTool({
-  buildFormData: buildFlattenFormData,
-  toApiParams: flattenToApiParams,
-  fromApiParams: flattenFromApiParams,
+export const flattenOperationConfig = defineCustomTool({
+  customProcessor,
   operationType: "flatten",
-  endpoint: ENDPOINT,
-  defaultParameters,
+  filePrefix: "flatten_",
 });
 
 export const useFlattenOperation = () => {

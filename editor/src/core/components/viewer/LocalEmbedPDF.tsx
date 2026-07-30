@@ -105,7 +105,6 @@ import { ButtonAppearanceOverlay } from "@app/tools/formFill/ButtonAppearanceOve
 import SignatureFieldOverlay from "@app/components/viewer/SignatureFieldOverlay";
 import { CommentsSidebar } from "@app/components/viewer/CommentsSidebar";
 import { CommentAuthorProvider } from "@app/contexts/CommentAuthorContext";
-import { accountService } from "@app/services/accountService";
 
 interface LocalEmbedPDFProps {
   file?: File | Blob;
@@ -233,18 +232,6 @@ export function LocalEmbedPDF({
     }),
     [localSignaturePreviews, selectedSignatureId, onSignaturePreviewsChange],
   );
-
-  useEffect(() => {
-    if (!config?.enableLogin) return;
-    accountService
-      .getAccountData()
-      .then((data) => {
-        if (data?.username) setCommentAuthorName(data.username);
-      })
-      .catch(() => {
-        /* not logged in or security disabled */
-      });
-  }, [config?.enableLogin]);
 
   // Stable key — avoids recreating the blob URL (and crashing ViewportPlugin) when
   // FileContext produces new File object references for the same file content.

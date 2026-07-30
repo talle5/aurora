@@ -1,4 +1,3 @@
-import apiClient from "@app/services/apiClient";
 import { useTranslation } from "react-i18next";
 import {
   defineCustomTool,
@@ -49,11 +48,7 @@ export const extractPagesOperationConfig = defineCustomTool({
       formData.append("fileInput", file);
       formData.append("pageNumbers", csv);
 
-      const response = await apiClient.post(
-        "/api/v1/general/rearrange-pages",
-        formData,
-        { responseType: "blob" },
-      );
+      const response = {} as any
 
       // Name output file with suffix
       const base = (file.name || "document.pdf").replace(/\.[^.]+$/, "");

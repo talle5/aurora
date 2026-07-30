@@ -1,67 +1,26 @@
 import { useTranslation } from "react-i18next";
-import {
-  useToolOperation,
-  ToolOperationHook,
-  defineSingleFileTool,
-} from "@app/hooks/tools/shared/useToolOperation";
-import {
-  SignParameters,
-  DEFAULT_PARAMETERS,
-} from "@app/hooks/tools/sign/useSignParameters";
+import { useToolOperation } from "@app/hooks/tools/shared/useToolOperation";
 import { createStandardErrorHandler } from "@app/utils/toolErrorHandler";
+import { CustomProcessorResult, defineCustomTool } from "@app/tools/shared/toolOperationTypes";
+import { SignParameters } from "@app/hooks/tools/sign/useSignParameters";
 
-// Static configuration that can be used by both the hook and automation executor
-export const buildSignFormData = (
-  params: SignParameters,
-  file: File,
-): FormData => {
-  const formData = new FormData();
-  formData.append("fileInput", file);
-
-  // Add signature data if available
-  if (params.signatureData) {
-    formData.append("signatureData", params.signatureData);
-  }
-
-  // Add signature position and size
-  if (params.signaturePosition) {
-    formData.append("x", params.signaturePosition.x.toString());
-    formData.append("y", params.signaturePosition.y.toString());
-    formData.append("width", params.signaturePosition.width.toString());
-    formData.append("height", params.signaturePosition.height.toString());
-    formData.append("page", params.signaturePosition.page.toString());
-  }
-
-  // Add signature type
-  formData.append("signatureType", params.signatureType || "canvas");
-
-  // Add other parameters
-  if (params.reason) {
-    formData.append("reason", params.reason);
-  }
-  if (params.location) {
-    formData.append("location", params.location);
-  }
-  if (params.signerName) {
-    formData.append("signerName", params.signerName);
-  }
-
-  return formData;
+// BYPASS: operação ainda não portada para o motor local (WASM).
+// Devolve o arquivo original sem alteração, só pra não quebrar o fluxo da UI.
+const customProcessor = async (
+  _parameters: SignParameters,
+  files: File[],
+): Promise<CustomProcessorResult> => {
+  console.warn('[sign] operação ainda não implementada localmente — bypass ativo, arquivo devolvido sem alteração');
+  return { files, consumedAllInputs: true };
 };
 
-// Static configuration object
-export const signOperationConfig = defineSingleFileTool({
-  buildFormData: buildSignFormData,
+export const signOperationConfig = defineCustomTool({
+  customProcessor,
   operationType: "sign",
-  // Signing is applied client-side in the viewer (see createStampTool ->
-  // flattenSignatures); there is no backend endpoint and the standard execute
-  // path is never used.
-  endpoint: null,
   filePrefix: "signed_",
-  defaultParameters: DEFAULT_PARAMETERS,
 });
 
-export const useSignOperation = (): ToolOperationHook<SignParameters> => {
+export const useSignOperation = () => {
   const { t } = useTranslation();
 
   return useToolOperation<SignParameters>({

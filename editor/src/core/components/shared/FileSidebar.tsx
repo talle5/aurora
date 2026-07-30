@@ -56,10 +56,6 @@ import { getFileOrigin } from "@app/components/filesPage/fileOrigin";
 import { VersionHistoryModal } from "@app/components/filesPage/VersionHistoryModal";
 import { DeleteFilesDialog } from "@app/components/filesPage/DeleteFilesDialog";
 import { SidebarChecklistSlot } from "@app/components/shared/SidebarChecklistSlot";
-import {
-  deleteServerFile,
-  type DeleteScope,
-} from "@app/services/serverStorageDelete";
 import { fileStorage } from "@app/services/fileStorage";
 import { useBulkAddProgress } from "@app/services/bulkAddProgress";
 import { useFolderMembership } from "@app/hooks/useFolderMembership";
@@ -347,31 +343,10 @@ const FileSidebar = forwardRef<HTMLDivElement, FileSidebarProps>(
     );
 
     const handleConfirmSidebarDelete = useCallback(
-      async (scope: DeleteScope) => {
+      async () => {
         const stub = deleteTarget;
         if (!stub) return;
-        if (
-          (scope === "cloud" || scope === "everywhere") &&
-          typeof stub.remoteStorageId === "number" &&
-          stub.remoteOwnedByCurrentUser === true
-        ) {
-          await deleteServerFile(stub.remoteStorageId);
-        }
-        if (scope === "device" || scope === "everywhere") {
-          await fileActions.removeFiles([stub.id], true);
-        } else if (scope === "cloud") {
-          // Local copy kept - drop the dead remote pointer so the cloud badge
-          // clears (the sidebar doesn't reconcile with the server itself).
-          const cleared = {
-            remoteStorageId: undefined,
-            remoteStorageUpdatedAt: undefined,
-            remoteOwnedByCurrentUser: undefined,
-            remoteSharedViaLink: false,
-            remoteHasShareLinks: undefined,
-          };
-          fileActions.updateStirlingFileStub(stub.id, cleared);
-          await fileStorage.updateFileMetadata(stub.id, cleared);
-        }
+        await fileActions.removeFiles([stub.id], true);
         setDeleteTarget(null);
         await refreshStubs();
       },
@@ -705,10 +680,10 @@ const FileSidebar = forwardRef<HTMLDivElement, FileSidebarProps>(
       const workbenchFileId = isInWorkbench ? (stub.id as FileId) : undefined;
       const isSelected = isWatchedFoldersActive
         ? activeWatchedFolderId != null &&
-          (folderMembership
-            .get(stub.id as string)
-            ?.includes(activeWatchedFolderId) ??
-            false)
+        (folderMembership
+          .get(stub.id as string)
+          ?.includes(activeWatchedFolderId) ??
+          false)
         : isInWorkbench;
       const showFolderDots =
         WATCHED_FOLDERS_ENABLED &&
@@ -716,13 +691,13 @@ const FileSidebar = forwardRef<HTMLDivElement, FileSidebarProps>(
         activeWatchedFolderId === null;
       const memberFolders = showFolderDots
         ? (folderMembership.get(stub.id as string) ?? [])
-            .map((fid) => folderById.get(fid))
-            .filter((f): f is NonNullable<typeof f> => !!f)
-            .map((f) => ({
-              id: f.id,
-              name: f.name,
-              accentColor: f.accentColor,
-            }))
+          .map((fid) => folderById.get(fid))
+          .filter((f): f is NonNullable<typeof f> => !!f)
+          .map((f) => ({
+            id: f.id,
+            name: f.name,
+            accentColor: f.accentColor,
+          }))
         : NO_FOLDERS;
       const isViewedInViewer = !!(
         viewedWorkbenchId && viewedWorkbenchId === (stub.id as string)
@@ -732,8 +707,8 @@ const FileSidebar = forwardRef<HTMLDivElement, FileSidebarProps>(
       const thumbnailUrl = isEncryptedFile
         ? undefined
         : (workbenchFileId
-            ? state.files.byId[workbenchFileId]?.thumbnailUrl
-            : undefined) || stub.thumbnailUrl;
+          ? state.files.byId[workbenchFileId]?.thumbnailUrl
+          : undefined) || stub.thumbnailUrl;
       const fileOrigin = getFileOrigin(stub);
       // Key by lineage (originalFileId) so a version swap updates the row in place instead of
       // remounting. But a 1-input→many-output op (split) yields sibling leaves that share one
@@ -1058,9 +1033,9 @@ const FileSidebar = forwardRef<HTMLDivElement, FileSidebarProps>(
                 label={
                   !isGoogleDriveEnabled
                     ? t(
-                        "fileSidebar.googleDriveDisabled",
-                        "Google Drive is not configured",
-                      )
+                      "fileSidebar.googleDriveDisabled",
+                      "Google Drive is not configured",
+                    )
                     : t("fileSidebar.googleDrive", "Open from Google Drive")
                 }
                 position="right"
@@ -1076,9 +1051,9 @@ const FileSidebar = forwardRef<HTMLDivElement, FileSidebarProps>(
                   aria-label={
                     !isGoogleDriveEnabled
                       ? t(
-                          "fileSidebar.googleDriveDisabled",
-                          "Google Drive is not configured",
-                        )
+                        "fileSidebar.googleDriveDisabled",
+                        "Google Drive is not configured",
+                      )
                       : t("fileSidebar.googleDrive", "Open from Google Drive")
                   }
                 >
@@ -1327,9 +1302,8 @@ const FileSidebar = forwardRef<HTMLDivElement, FileSidebarProps>(
             style={onOpenSettings ? { cursor: "pointer" } : undefined}
           >
             <div
-              className={`file-sidebar-bottom-avatar${
-                showProfilePicture ? " file-sidebar-bottom-avatar--picture" : ""
-              }`}
+              className={`file-sidebar-bottom-avatar${showProfilePicture ? " file-sidebar-bottom-avatar--picture" : ""
+                }`}
               aria-label={displayName}
             >
               {showProfilePicture ? (

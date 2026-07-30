@@ -32,7 +32,6 @@ import UploadToServerModal from "@app/components/shared/UploadToServerModal";
 import ShareFileModal from "@app/components/shared/ShareFileModal";
 import { useAppConfig } from "@app/contexts/AppConfigContext";
 import ShareManagementModal from "@app/components/shared/ShareManagementModal";
-import apiClient from "@app/services/apiClient";
 import { absoluteWithBasePath } from "@app/constants/app";
 import { alert } from "@app/components/toast";
 
@@ -146,11 +145,7 @@ const FileListItem: React.FC<FileListItemProps> = ({
   const handleCopyShareLink = useCallback(async () => {
     if (!file.remoteStorageId) return;
     try {
-      const response = await apiClient.get<{
-        shareLinks?: Array<{ token?: string }>;
-      }>(`/api/v1/storage/files/${file.remoteStorageId}`, {
-        suppressErrorToast: true,
-      });
+      const response = {} as any
       const links = response.data?.shareLinks ?? [];
       const token = links[links.length - 1]?.token;
       if (!token) {

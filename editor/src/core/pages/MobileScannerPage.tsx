@@ -25,10 +25,7 @@ import {
   type JscanifyCornerPoints,
   type JscanifyScanner,
 } from "@app/utils/loadJscanify";
-import apiClient from "@app/services/apiClient";
 
-// Use the configured API base (e.g. api.stirling.com), not the page origin.
-const API_BASE = (apiClient.defaults.baseURL ?? "").replace(/\/+$/, "");
 
 // Experimental camera controls (W3C Image Capture / MediaStream extensions) that
 // are not yet part of the standard DOM lib typings but are widely shipped on
@@ -105,53 +102,19 @@ export default function MobileScannerPage() {
         return;
       }
 
-      try {
-        const response = await fetch(
-          `${API_BASE}/api/v1/mobile-scanner/validate-session/${sessionId}`,
-        );
+      setSessionValid(false);
+      setSessionError(
+        t(
+          "mobileScanner.sessionNotFound",
+          "Session not found. Please refresh and try again.",
+        ),
+      );
+      setLoadingStatus("Session not found ✗");
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data.valid) {
-            setSessionValid(true);
-            setSessionError(null);
-            // Don't set status here - let camera/detection effects control status from now on
-            console.log("Session validated successfully:", data);
-          } else {
-            setSessionValid(false);
-            setSessionError(
-              t(
-                "mobileScanner.sessionExpired",
-                "This session has expired. Please refresh and try again.",
-              ),
-            );
-            setLoadingStatus("Session expired ✗");
-          }
-        } else {
-          setSessionValid(false);
-          setSessionError(
-            t(
-              "mobileScanner.sessionNotFound",
-              "Session not found. Please refresh and try again.",
-            ),
-          );
-          setLoadingStatus("Session not found ✗");
-        }
-      } catch (err) {
-        console.error("Failed to validate session:", err);
-        setSessionValid(false);
-        setSessionError(
-          t(
-            "mobileScanner.sessionValidationError",
-            "Unable to verify session. Please try again.",
-          ),
-        );
-        setLoadingStatus("Session validation error: " + (err as Error).message);
-      }
-    };
 
-    validateSession();
-  }, [sessionId, t]);
+      validateSession();
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -370,9 +333,9 @@ export default function MobileScannerPage() {
           setLoadingStatus("Missing video/canvas refs ✗");
           console.error(
             "[Mobile Scanner] Missing refs: video=" +
-              !!videoRef.current +
-              ", canvas=" +
-              !!highlightCanvasRef.current,
+            !!videoRef.current +
+            ", canvas=" +
+            !!highlightCanvasRef.current,
           );
           return;
         }
@@ -380,9 +343,9 @@ export default function MobileScannerPage() {
           setLoadingStatus("Video has no dimensions ✗");
           console.error(
             "[Mobile Scanner] Missing video dimensions: " +
-              videoRef.current.videoWidth +
-              "x" +
-              videoRef.current.videoHeight,
+            videoRef.current.videoWidth +
+            "x" +
+            videoRef.current.videoHeight,
           );
           return;
         }
@@ -392,10 +355,10 @@ export default function MobileScannerPage() {
         setLoadingStatus("Detection active ✓");
         console.log(
           "[Mobile Scanner] Starting highlighting loop for " +
-            video.videoWidth +
-            "x" +
-            video.videoHeight +
-            " video",
+          video.videoWidth +
+          "x" +
+          video.videoHeight +
+          " video",
         );
 
         // Create low-res detection canvas with optimized context for frequent pixel reading
@@ -849,58 +812,7 @@ export default function MobileScannerPage() {
     setIsUploading(true);
     setUploadError(null);
     setUploadProgress(0);
-
-    try {
-      // Convert data URLs to File objects
-      const files: File[] = [];
-      for (let i = 0; i < imagesToUpload.length; i++) {
-        const dataUrl = imagesToUpload[i];
-        const response = await fetch(dataUrl);
-        const blob = await response.blob();
-        const file = new File([blob], `scan-${Date.now()}-${i}.jpg`, {
-          type: "image/jpeg",
-        });
-        files.push(file);
-        setUploadProgress(((i + 1) / (imagesToUpload.length + 1)) * 50); // 0-50% for conversion
-      }
-
-      // Upload to backend
-      const formData = new FormData();
-      files.forEach((file) => {
-        formData.append("files", file);
-      });
-
-      const uploadResponse = await fetch(
-        `${API_BASE}/api/v1/mobile-scanner/upload/${sessionId}`,
-        {
-          method: "POST",
-          body: formData,
-        },
-      );
-
-      if (!uploadResponse.ok) {
-        throw new Error("Upload failed");
-      }
-
-      setUploadProgress(100);
-      setUploadSuccess(true);
-
-      // Close the mobile tab after successful upload
-      setTimeout(() => {
-        window.close();
-        // Fallback if window.close() doesn't work (some browsers block it)
-        if (!window.closed) {
-          navigate("/");
-        }
-      }, 1500);
-    } catch (err) {
-      console.error("Upload failed:", err);
-      setUploadError(
-        t("mobileScanner.uploadFailed", "Upload failed. Please try again."),
-      );
-    } finally {
-      setIsUploading(false);
-    }
+    setIsUploading(false);
   }, [currentPreview, capturedImages, sessionId, navigate, t]);
 
   const retake = useCallback(() => {

@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import apiClient from "@app/services/apiClient";
 import type { GroupEnabledResult } from "@app/types/groupEnabled";
 
 export type { GroupEnabledResult };
@@ -23,18 +22,7 @@ export function useGroupEnabled(group: string): GroupEnabledResult {
   }, []);
 
   useEffect(() => {
-    apiClient
-      .get<boolean>(
-        `/api/v1/config/group-enabled?group=${encodeURIComponent(group)}`,
-      )
-      .then((res) => {
-        if (isMountedRef.current)
-          setResult({ enabled: res.data, unavailableReason: null });
-      })
-      .catch(() => {
-        if (isMountedRef.current)
-          setResult({ enabled: false, unavailableReason: null });
-      });
+    setResult({ enabled: false, unavailableReason: null });
   }, [group]);
 
   return result;

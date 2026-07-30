@@ -17,7 +17,6 @@ import { useToolWorkflow } from "@app/contexts/ToolWorkflowContext";
 import { useFileContext } from "@app/contexts/FileContext";
 import { isStirlingFile, type FileId } from "@app/types/fileContext";
 import { createStirlingFilesAndStubs } from "@app/services/fileStubHelpers";
-import apiClient from "@app/services/apiClient";
 import { PdfBookmarkObject, PdfActionType } from "@embedpdf/models";
 import { useTranslation } from "react-i18next";
 import BookmarksIcon from "@mui/icons-material/BookmarksRounded";
@@ -389,11 +388,7 @@ export const BookmarkSidebar = ({
       formData.append("replaceExisting", "true");
       formData.append("bookmarkData", JSON.stringify(bookmarkData));
 
-      const response = await apiClient.post(
-        "/api/v1/general/edit-table-of-contents",
-        formData,
-        { responseType: "blob" },
-      );
+      const response = {} as any;
 
       const newFile = new File([response.data as Blob], file.name, {
         type: "application/pdf",

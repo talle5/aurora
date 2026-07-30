@@ -8,9 +8,6 @@ import {
 } from "react";
 import { useAllFiles, useFileActions } from "@app/contexts/FileContext";
 import { generateId } from "@app/utils/generateId";
-import apiClient from "@app/services/apiClient";
-import { getAiBaseUrl } from "@app/services/aiBaseUrl";
-import { getAuthHeaders } from "@app/services/apiClientSetup";
 import { createChildStub } from "@app/contexts/file/fileActions";
 import {
   createNewStirlingFileStub,
@@ -255,7 +252,7 @@ async function consumeSSEStream(
   let buffer = "";
   let currentEvent = "";
 
-  for (;;) {
+  for (; ;) {
     const { done, value } = await reader.read();
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
@@ -330,10 +327,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   // Download a File from the Stirling files endpoint.
   const downloadFile = useCallback(
     async (descriptor: AiWorkflowResultFile): Promise<File> => {
-      const response = await apiClient.get<Blob>(
-        `/api/v1/general/files/${descriptor.fileId}`,
-        { responseType: "blob" },
-      );
+      const response = {} as any;
       return new File([response.data], descriptor.fileName, {
         type: descriptor.contentType ?? response.data.type,
       });
@@ -355,12 +349,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         ? result.resultFiles
         : result.fileId && result.fileName && result.contentType
           ? [
-              {
-                fileId: result.fileId,
-                fileName: result.fileName,
-                contentType: result.contentType,
-              } satisfies AiWorkflowResultFile,
-            ]
+            {
+              fileId: result.fileId,
+              fileName: result.fileName,
+              contentType: result.contentType,
+            } satisfies AiWorkflowResultFile,
+          ]
           : [];
       if (descriptors.length === 0) return;
 
@@ -441,16 +435,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           formData.append(`conversationHistory[${i}].content`, message.content);
         });
 
-        const response = await fetch(
-          `${getAiBaseUrl()}/api/v1/ai/orchestrate/stream`,
-          {
-            method: "POST",
-            body: formData,
-            headers: await getAuthHeaders(),
-            credentials: "include",
-            signal: controller.signal,
-          },
-        );
+        const response = {} as any;
 
         if (!response.ok) {
           throw new Error(`AI engine request failed: ${response.status}`);

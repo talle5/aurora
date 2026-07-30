@@ -1,49 +1,23 @@
 import { useTranslation } from "react-i18next";
-import {
-  useToolOperation,
-  defineSingleFileTool,
-} from "@app/hooks/tools/shared/useToolOperation";
-
+import { useToolOperation } from "@app/hooks/tools/shared/useToolOperation";
 import { createStandardErrorHandler } from "@app/utils/toolErrorHandler";
-import {
-  RemovePagesParameters,
-  defaultParameters,
-} from "@app/hooks/tools/removePages/useRemovePagesParameters";
-// import { useToolResources } from '@app/hooks/tools/shared/useToolResources';
+import { CustomProcessorResult, defineCustomTool } from "@app/tools/shared/toolOperationTypes";
+import { RemovePagesParameters } from "@app/hooks/tools/removePages/useRemovePagesParameters";
 
-const ENDPOINT = "/api/v1/general/remove-pages" satisfies ToolEndpoint;
-type RemovePagesApiParams = ToolApiParams[typeof ENDPOINT];
+// BYPASS: operação ainda não portada para o motor local (WASM).
+// Devolve o arquivo original sem alteração, só pra não quebrar o fluxo da UI.
+const customProcessor = async (
+  _parameters: RemovePagesParameters,
+  files: File[],
+): Promise<CustomProcessorResult> => {
+  console.warn('[removePages] operação ainda não implementada localmente — bypass ativo, arquivo devolvido sem alteração');
+  return { files, consumedAllInputs: true };
+};
 
-// Convert the tool's UI parameters into the remove-pages request body. The
-// return type is the generated backend model, so a spec change that renames or
-// drops a field breaks the build here.
-export const removePagesToApiParams = (
-  parameters: RemovePagesParameters,
-): RemovePagesApiParams => ({
-  pageNumbers: parameters.pageNumbers.replace(/\s+/g, ""),
-});
-
-// Reconstruct the tool's UI parameters from a remove-pages request body, so a
-// stored or AI-authored step can be re-rendered in the settings UI.
-export const removePagesFromApiParams = (
-  apiParams: RemovePagesApiParams,
-): Partial<RemovePagesParameters> => ({
-  pageNumbers: apiParams.pageNumbers ?? defaultParameters.pageNumbers,
-});
-
-export const buildRemovePagesFormData = (
-  parameters: RemovePagesParameters,
-  file: File,
-): FormData =>
-  objectToFormData(removePagesToApiParams(parameters), { fileInput: file });
-
-export const removePagesOperationConfig = defineSingleFileTool({
-  buildFormData: buildRemovePagesFormData,
-  toApiParams: removePagesToApiParams,
-  fromApiParams: removePagesFromApiParams,
+export const removePagesOperationConfig = defineCustomTool({
+  customProcessor,
   operationType: "removePages",
-  endpoint: ENDPOINT,
-  defaultParameters,
+  filePrefix: "removePages_",
 });
 
 export const useRemovePagesOperation = () => {

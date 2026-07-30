@@ -1,75 +1,23 @@
 import { useTranslation } from "react-i18next";
-import {
-  useToolOperation,
-  defineSingleFileTool,
-} from "@app/hooks/tools/shared/useToolOperation";
-
+import { useToolOperation } from "@app/hooks/tools/shared/useToolOperation";
 import { createStandardErrorHandler } from "@app/utils/toolErrorHandler";
-import {
-  RedactParameters,
-  defaultParameters,
-} from "@app/hooks/tools/redact/useRedactParameters";
+import { CustomProcessorResult, defineCustomTool } from "@app/tools/shared/toolOperationTypes";
+import { RedactParameters } from "@app/hooks/tools/redact/useRedactParameters";
 
-// Automatic redaction is the only mode that calls the backend; manual redaction
-// is handled client-side by EmbedPDF in the viewer.
-const AUTO_ENDPOINT = "/api/v1/security/auto-redact" satisfies ToolEndpoint;
-type RedactApiParams = ToolApiParams[typeof AUTO_ENDPOINT];
-
-// Convert the tool's UI parameters into the auto-redact request body.
-export const redactToApiParams = (
-  parameters: RedactParameters,
-): RedactApiParams => ({
-  // The backend takes the search terms as a single newline-separated string.
-  listOfText: parameters.wordsToRedact.join("\n"),
-  useRegex: parameters.useRegex,
-  wholeWordSearch: parameters.wholeWordSearch,
-  // The backend expects the hex colour without the leading '#'.
-  redactColor: parameters.redactColor.replace("#", ""),
-  customPadding: parameters.customPadding,
-  convertPDFToImage: parameters.convertPDFToImage,
-});
-
-// Reconstruct the tool's UI parameters from an auto-redact request body.
-export const redactFromApiParams = (
-  apiParams: RedactApiParams,
-): Partial<RedactParameters> => ({
-  mode: "automatic",
-  wordsToRedact: apiParams.listOfText ? apiParams.listOfText.split("\n") : [],
-  useRegex: apiParams.useRegex ?? defaultParameters.useRegex,
-  wholeWordSearch:
-    apiParams.wholeWordSearch ?? defaultParameters.wholeWordSearch,
-  redactColor: apiParams.redactColor
-    ? `#${apiParams.redactColor}`
-    : defaultParameters.redactColor,
-  customPadding: apiParams.customPadding,
-  convertPDFToImage:
-    apiParams.convertPDFToImage ?? defaultParameters.convertPDFToImage,
-});
-
-// Static configuration that can be used by both the hook and automation executor
-export const buildRedactFormData = (
-  parameters: RedactParameters,
-  file: File,
-): FormData => {
-  // Manual redaction uses EmbedPDF in-viewer and makes no API call; return an
-  // empty payload to satisfy the shared interface without throwing.
-  if (parameters.mode !== "automatic") {
-    return new FormData();
-  }
-  return objectToFormData(redactToApiParams(parameters), { fileInput: file });
+// BYPASS: operação ainda não portada para o motor local (WASM).
+// Devolve o arquivo original sem alteração, só pra não quebrar o fluxo da UI.
+const customProcessor = async (
+  _parameters: RedactParameters,
+  files: File[],
+): Promise<CustomProcessorResult> => {
+  console.warn('[redact] operação ainda não implementada localmente — bypass ativo, arquivo devolvido sem alteração');
+  return { files, consumedAllInputs: true };
 };
 
-// Static configuration object
-export const redactOperationConfig = defineSingleFileTool({
-  buildFormData: buildRedactFormData,
-  toApiParams: redactToApiParams,
-  fromApiParams: redactFromApiParams,
+export const redactOperationConfig = defineCustomTool({
+  customProcessor,
   operationType: "redact",
-  endpoint: (parameters: RedactParameters) =>
-    parameters.mode === "automatic" ? AUTO_ENDPOINT : null,
-  // Routing set: `mode` is frontend-only, so a stored step matches by this rather than by replay.
-  endpoints: [AUTO_ENDPOINT],
-  defaultParameters,
+  filePrefix: "redact_",
 });
 
 export const useRedactOperation = () => {

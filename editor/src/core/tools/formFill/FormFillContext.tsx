@@ -37,7 +37,6 @@ import type {
   WidgetCoordinates,
 } from "@app/tools/formFill/types";
 import type { IFormDataProvider } from "@app/tools/formFill/providers/types";
-import { PdfBoxFormProvider } from "@app/tools/formFill/providers/PdfBoxFormProvider";
 import { PdfiumFormProvider } from "@app/tools/formFill/providers/PdfiumFormProvider";
 import { fetchSignatureFieldsWithAppearances } from "@app/services/pdfiumService";
 
@@ -269,7 +268,6 @@ export function useAllFormValues(): Record<string, string> {
 
 /** Singleton provider instances */
 const pdfiumProvider = new PdfiumFormProvider();
-const pdfBoxProvider = new PdfBoxFormProvider();
 
 export function FormFillProvider({
   children,
@@ -285,9 +283,7 @@ export function FormFillProvider({
   );
   const providerModeRef = useRef(initialMode as "pdflib" | "pdfbox");
   providerModeRef.current = providerMode;
-  const provider =
-    providerProp ??
-    (providerMode === "pdfbox" ? pdfBoxProvider : pdfiumProvider);
+  const provider = pdfiumProvider;
   const providerRef = useRef(provider);
   providerRef.current = provider;
 
@@ -441,7 +437,7 @@ export function FormFillProvider({
       if (providerModeRef.current === mode) return;
 
       // provider (pdfbox vs pdflib).
-      const newProvider = mode === "pdfbox" ? pdfBoxProvider : pdfiumProvider;
+      const newProvider = pdfiumProvider;
       providerRef.current = newProvider;
       providerModeRef.current = mode;
 

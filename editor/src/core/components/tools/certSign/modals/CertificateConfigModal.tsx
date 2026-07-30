@@ -17,7 +17,6 @@ import {
   CertificateType,
   UploadFormat,
 } from "@app/components/tools/certSign/CertificateSelector";
-import apiClient from "@app/services/apiClient";
 
 export interface CertificateSubmitData {
   certType: CertificateType;
@@ -107,12 +106,7 @@ export const CertificateConfigModal: React.FC<CertificateConfigModalProps> = ({
           formData.append("participantToken", participantToken);
         }
 
-        const response = await apiClient.post<{
-          valid: boolean;
-          subjectName: string | null;
-          notAfter: string | null;
-          error: string | null;
-        }>(endpoint, formData);
+        const response = {} as any;
 
         if (response.data.valid) {
           setCertValidation({

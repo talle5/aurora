@@ -1,31 +1,23 @@
 import { useTranslation } from "react-i18next";
-import {
-  useToolOperation,
-  defineSingleFileTool,
-} from "@app/hooks/tools/shared/useToolOperation";
+import { useToolOperation } from "@app/hooks/tools/shared/useToolOperation";
 import { createStandardErrorHandler } from "@app/utils/toolErrorHandler";
-import {
-  RemovePasswordParameters,
-  defaultParameters,
-} from "@app/hooks/tools/removePassword/useRemovePasswordParameters";
-import {
-  buildRemovePasswordFormData,
-  removePasswordToApiParams,
-  removePasswordFromApiParams,
-  REMOVE_PASSWORD_ENDPOINT,
-} from "@app/hooks/tools/removePassword/buildRemovePasswordFormData";
+import { CustomProcessorResult, defineCustomTool } from "@app/tools/shared/toolOperationTypes";
+import { RemovePasswordParameters } from "@app/hooks/tools/removePassword/useRemovePasswordParameters";
 
-// Re-export for backwards compatibility with any other imports
-export { buildRemovePasswordFormData };
+// BYPASS: operação ainda não portada para o motor local (WASM).
+// Devolve o arquivo original sem alteração, só pra não quebrar o fluxo da UI.
+const customProcessor = async (
+  _parameters: RemovePasswordParameters,
+  files: File[],
+): Promise<CustomProcessorResult> => {
+  console.warn('[removePassword] operação ainda não implementada localmente — bypass ativo, arquivo devolvido sem alteração');
+  return { files, consumedAllInputs: true };
+};
 
-// Static configuration object
-export const removePasswordOperationConfig = defineSingleFileTool({
-  buildFormData: buildRemovePasswordFormData,
-  toApiParams: removePasswordToApiParams,
-  fromApiParams: removePasswordFromApiParams,
+export const removePasswordOperationConfig = defineCustomTool({
+  customProcessor,
   operationType: "removePassword",
-  endpoint: REMOVE_PASSWORD_ENDPOINT,
-  defaultParameters,
+  filePrefix: "removePassword_",
 });
 
 export const useRemovePasswordOperation = () => {
@@ -34,10 +26,7 @@ export const useRemovePasswordOperation = () => {
   return useToolOperation<RemovePasswordParameters>({
     ...removePasswordOperationConfig,
     getErrorMessage: createStandardErrorHandler(
-      t(
-        "removePassword.error.failed",
-        "An error occurred while removing the password from the PDF.",
-      ),
+      t("removePassword.error.failed", "An error occurred while removing the password from the PDF."),
     ),
   });
 };

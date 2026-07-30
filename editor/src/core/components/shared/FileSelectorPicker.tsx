@@ -16,7 +16,6 @@ import { useIndexedDB } from "@app/contexts/IndexedDBContext";
 import { useFileContext } from "@app/contexts/file/fileHooks";
 import { useFileManager } from "@app/hooks/useFileManager";
 import { fileStorage } from "@app/services/fileStorage";
-import apiClient from "@app/services/apiClient";
 import {
   parseContentDispositionFilename,
   extractLatestFilesFromBundle,
@@ -262,14 +261,7 @@ export function FileSelectorPicker({
         let stirlingFile: StirlingFile | null = null;
 
         if (stub.remoteShareToken) {
-          const res = await apiClient.get(
-            `/api/v1/storage/share-links/${stub.remoteShareToken}`,
-            {
-              responseType: "blob",
-              suppressErrorToast: true,
-              skipAuthRedirect: true,
-            } as any,
-          );
+          const res = {} as any;
           const ct =
             res.headers?.["content-type"] ||
             res.headers?.["Content-Type"] ||
@@ -286,14 +278,7 @@ export function FileSelectorPicker({
           if (files[0])
             stirlingFile = createStirlingFile(files[0], createFileId());
         } else if (stub.remoteStorageId) {
-          const res = await apiClient.get(
-            `/api/v1/storage/files/${stub.remoteStorageId}/download`,
-            {
-              responseType: "blob",
-              suppressErrorToast: true,
-              skipAuthRedirect: true,
-            } as any,
-          );
+          const res = {} as any;
           const ct =
             res.headers?.["content-type"] ||
             res.headers?.["Content-Type"] ||

@@ -1,4 +1,3 @@
-import apiClient from "@app/services/apiClient";
 import {
   defineCustomTool,
   CustomProcessorResult,
@@ -82,11 +81,7 @@ const processPdfCommentAgent = async (
   const [inputFile] = files;
   const formData = buildPdfCommentAgentFormData(parameters, inputFile);
 
-  const response = await apiClient.post<Blob>(
-    PDF_COMMENT_AGENT_ENDPOINT,
-    formData,
-    { responseType: "blob" },
-  );
+  const response = {} as any;
 
   const dispositionHeader =
     (response.headers as Record<string, string | undefined>)[

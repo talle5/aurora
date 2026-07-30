@@ -1,5 +1,4 @@
 import { useCallback, useRef, useEffect, useContext } from "react";
-import apiClient from "@app/services/apiClient";
 import { useTranslation } from "react-i18next";
 import { useFileContext } from "@app/contexts/FileContext";
 import { useNavigationActions } from "@app/contexts/NavigationContext";
@@ -29,7 +28,6 @@ import {
 } from "@app/contexts/file/fileActions";
 import { createNewStirlingFileStub } from "@app/types/fileContext";
 import { ToolOperation } from "@app/types/file";
-import { ensureBackendReady } from "@app/services/backendReadinessGuard";
 import { trackEditorOperation } from "@app/services/analytics";
 import { useWillUseCloud } from "@app/hooks/useWillUseCloud";
 import { useCreditCheck } from "@app/hooks/useCreditCheck";
@@ -191,21 +189,6 @@ export const useToolOperation = <TParams>(
         return;
       }
 
-      // Backend readiness check (will skip for SaaS-routed endpoints).
-      // Custom processors without an endpoint skip this — they manage their own backend calls.
-      const endpointForReadyCheck =
-        config.toolType !== ToolType.custom ? runtimeEndpoint : undefined;
-      const backendReady = await ensureBackendReady(endpointForReadyCheck);
-      if (!backendReady) {
-        actions.setError(
-          t(
-            "backendHealth.offline",
-            "Embedded backend is offline. Please try again shortly.",
-          ),
-        );
-        return;
-      }
-
       // Reset state
       actions.setLoading(true);
       actions.setError(null);
@@ -280,9 +263,7 @@ export const useToolOperation = <TParams>(
               );
             }
 
-            const response = await apiClient.post(endpoint, formData, {
-              responseType: "blob",
-            });
+            const response = {} as any
 
             const responseBlob: Blob = response.data;
             const contentTypeHeader = response.headers?.["content-type"];

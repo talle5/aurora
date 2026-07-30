@@ -3,7 +3,6 @@ import { useIndexedDB } from "@app/contexts/IndexedDBContext";
 import { fileStorage } from "@app/services/fileStorage";
 import { StirlingFileStub, StirlingFile } from "@app/types/fileContext";
 import { FileId } from "@app/types/fileContext";
-import apiClient from "@app/services/apiClient";
 import { useAppConfig } from "@app/contexts/AppConfigContext";
 
 interface StoredFileResponse {
@@ -117,13 +116,7 @@ export const useFileManager = () => {
 
       if (shouldFetchServerFiles) {
         try {
-          const response = await apiClient.get<StoredFileResponse[]>(
-            "/api/v1/storage/files",
-            {
-              suppressErrorToast: true,
-              skipAuthRedirect: true,
-            } as any,
-          );
+          const response = {} as any
           const serverFiles = Array.isArray(response.data) ? response.data : [];
           const serverStubs: StirlingFileStub[] = [];
           const serverMap = new Map<number, StoredFileResponse>();
@@ -247,12 +240,7 @@ export const useFileManager = () => {
 
         if (config?.storageShareLinksEnabled === true) {
           try {
-            const sharedResponse = await apiClient.get<
-              AccessedShareLinkResponse[]
-            >("/api/v1/storage/share-links/accessed", {
-              suppressErrorToast: true,
-              skipAuthRedirect: true,
-            } as any);
+            const sharedResponse = {} as any;
             const sharedLinks = Array.isArray(sharedResponse.data)
               ? sharedResponse.data
               : [];
