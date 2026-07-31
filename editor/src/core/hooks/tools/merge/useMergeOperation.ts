@@ -9,17 +9,12 @@ import {
   MergeParameters,
   defaultParameters,
 } from "@app/hooks/tools/merge/useMergeParameters";
-import {invoke} from "@app/brain/pdf-cpu";
+import { createSimpleCustomProcessor} from "@app/brain/pdf-cpu";
 
-const customProcessor = async (
-  parameters: MergeParameters,
-  files: File[],
-): Promise<CustomProcessorResult> => {
-  const file = new File([await invoke("merge",files) as BlobPart], "merged_output.pdf", {
-    type: "application/pdf"
-  });
-  return { files: [file], consumedAllInputs: true };
-};
+const customProcessor = createSimpleCustomProcessor<MergeParameters>(
+  "merge",
+  "removed_signatures_output.pdf",
+);
 
 export const mergeOperationConfig = defineCustomTool({
   customProcessor,

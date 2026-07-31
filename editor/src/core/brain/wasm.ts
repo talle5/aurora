@@ -14,6 +14,7 @@ export interface PdfEngine {
   validateSignatures(files: PdfData): Promise<Uint8Array>;
   encrypt(files: PdfData, secrets: AddPasswordParameters): Promise<Uint8Array>;
   unlockForm(files: PdfData): Promise<Uint8Array>;
+  removeSignatures(files: PdfData): Promise<Uint8Array>;
 }
 
 let engineInstance: PdfEngine | null = null;

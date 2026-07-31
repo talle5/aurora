@@ -19,6 +19,8 @@ func main() {
 		{"pdfcpuValidateSignatures", 1, validate},
 		{"pdfcpuEncrypt", 1, encrypt},
 		{"pdfcpuUnlockForm", 1, UnlockForm},
+		{"pdfcpuZoom", 1, Zoom},
+		{"pdfcpuRemoveSignatures", 1, RemoveSignatures},
 	}
 	
 	manifest := make(map[string]interface{})

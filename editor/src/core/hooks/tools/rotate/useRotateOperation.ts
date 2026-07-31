@@ -2,29 +2,18 @@ import { useTranslation } from "react-i18next";
 import {
   useToolOperation,
   defineCustomTool,
-  type CustomProcessorResult,
 } from "@app/hooks/tools/shared/useToolOperation";
 import { createStandardErrorHandler } from "@app/utils/toolErrorHandler";
 import {
   RotateParameters,
   defaultParameters,
-  normalizeAngle,
 } from "@app/hooks/tools/rotate/useRotateParameters";
+import { createSimpleCustomProcessor } from "@app/brain/pdf-cpu";
 
-import { invoke } from "@app/brain/pdf-cpu";
-
-const customProcessor = async (
-  parameters: RotateParameters,
-  files: File[],
-): Promise<CustomProcessorResult> => {
-  normalizeAngle(parameters.angle)
-  const file = await invoke("rotate", files, parameters)
-  const resultFile = new File([file as BlobPart], "merged_output.pdf", {
-    type: "application/pdf"
-  });
-  return { files: [resultFile], consumedAllInputs: true };
-
-};
+const customProcessor = createSimpleCustomProcessor<RotateParameters>(
+  "rotate",
+  "removed_signatures_output.pdf",
+);
 
 // Static configuration object
 export const rotateOperationConfig = defineCustomTool({

@@ -1,13 +1,8 @@
-import React from "react";
 import { useTranslation } from "react-i18next";
 import HotkeysSection from "@app/components/shared/config/configSections/HotkeysSection";
 import GeneralSection from "@app/components/shared/config/configSections/GeneralSection";
 import HelpSection from "@app/components/shared/config/configSections/HelpSection";
 import LegalSection from "@app/components/shared/config/configSections/LegalSection";
-import {
-  BackendThirdPartyLicensesSection,
-  FrontendThirdPartyLicensesSection,
-} from "@app/components/shared/config/configSections/ThirdPartyLicensesSection";
 import type {
   ConfigNavItem,
   ConfigNavSection,
@@ -74,18 +69,6 @@ export const useConfigNavSections = (
           label: t("settings.legal.label", "Legal"),
           icon: "gavel-rounded",
           component: <LegalSection />,
-        },
-        {
-          key: "backendThirdPartyLicenses",
-          label: t("settings.licenses.backendLabel", "Backend Licenses"),
-          icon: "article-rounded",
-          component: <BackendThirdPartyLicensesSection />,
-        },
-        {
-          key: "frontendThirdPartyLicenses",
-          label: t("settings.licenses.frontendLabel", "Frontend Licenses"),
-          icon: "code-rounded",
-          component: <FrontendThirdPartyLicensesSection />,
         },
       ],
     },

@@ -124,3 +124,31 @@ func UnlockForm(readers []io.ReadSeeker, params map[string]interface{}, out *byt
 	conf := baseConf()
 	return api.UnlockFormFields(readers[0], out, nil, conf)
 }
+
+func Zoom(readers []io.ReadSeeker, params map[string]interface{}, out *bytes.Buffer) error {
+	conf := baseConf()
+	escala := params["escala"].(float64)
+	zoom := model.Zoom{
+		Factor: escala,
+	}
+	return api.Zoom(readers[0], out, nil, &zoom, conf)
+}
+
+func RemovePages(readers []io.ReadSeeker, params map[string]interface{}, out *bytes.Buffer) error {
+	conf := baseConf()
+	listOfPages := params[""].([]string)
+	return api.RemovePages(readers[0], out, listOfPages, conf)
+}
+
+func RemoveSignatures(readers []io.ReadSeeker, params map[string]interface{}, out *bytes.Buffer) error {
+	return api.RemoveSignatures(readers[0], out, baseConf())
+}
+
+// func Zoom(readers []io.ReadSeeker, params map[string]interface{}, out *bytes.Buffer) error {
+// 	conf := baseConf()
+// 	escala := params["escala"].(float64)
+// 	zoom := model.Zoom{
+// 		Factor: escala,
+// 	}
+// 	return api.Zoom(readers[0], out, nil, &zoom, conf)
+// }
