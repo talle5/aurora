@@ -144,11 +144,28 @@ func RemoveSignatures(readers []io.ReadSeeker, params map[string]interface{}, ou
 	return api.RemoveSignatures(readers[0], out, baseConf())
 }
 
-// func Zoom(readers []io.ReadSeeker, params map[string]interface{}, out *bytes.Buffer) error {
-// 	conf := baseConf()
-// 	escala := params["escala"].(float64)
-// 	zoom := model.Zoom{
-// 		Factor: escala,
-// 	}
-// 	return api.Zoom(readers[0], out, nil, &zoom, conf)
-// }
+func AddWatherMark(readers []io.ReadSeeker, params map[string]interface{}, out *bytes.Buffer) error {
+	// paginas := params["paginas"].([]string)
+	return api.AddWatermarksSliceMap(readers[0], out, nil, baseConf())
+}
+
+func extractImages(readers []io.ReadSeeker, params map[string]interface{}, out *bytes.Buffer) error {
+	imagesPerPage, err := api.ExtractImagesRaw(readers[0], nil, baseConf())
+	if err != nil {
+		return err
+	}
+
+	var images [][]byte
+	for _, pageImages := range imagesPerPage {
+		for _, img := range pageImages {
+			data, err := io.ReadAll(img)
+			if err != nil {
+				return err
+			} 
+			images = append(images, data)
+		}
+	}
+
+	out.Write(encodeFileList(images)) // reusa o mesmo encoder de sempre
+	return nil
+}

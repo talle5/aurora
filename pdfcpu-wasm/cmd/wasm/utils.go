@@ -8,42 +8,13 @@ import (
 	"fmt"
 	"io"
 	"syscall/js"
-	"time"
 
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
-	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/types"
 )
 
 func baseConf() *model.Configuration {
-	return &model.Configuration{
-		CreationDate:                    time.Now().Format("2006-01-02 15:04"),
-		Version:                         "",
-		CheckFileNameExt:                true,
-		Reader15:                        true,
-		DecodeAllStreams:                false,
-		ValidationMode:                  1,
-		ValidateLinks:                   false,
-		Eol:                             types.EolLF,
-		WriteObjectStream:               true,
-		WriteXRefStream:                 true,
-		EncryptUsingAES:                 true,
-		EncryptKeyLength:                256,
-		Permissions:                     63687,
-		TimestampFormat:                 "2006-01-02 15:04",
-		DateFormat:                      "2006-01-02",
-		Optimize:                        true,
-		OptimizeBeforeWriting:           true,
-		OptimizeResourceDicts:           true,
-		OptimizeDuplicateContentStreams: false,
-		CreateBookmarks:                 true,
-		MergeBookmarkMode:               "wrap",
-		NeedAppearances:                 false,
-		Offline:                         false,
-		Timeout:                         5,
-		PreferredCertRevocationChecker:  0,
-		FormFieldListMaxColWidth:        0,
-		Limits:                          model.DefaultResourceLimits(),
-	}
+	conf := mutableConf
+	return &conf
 }
 
 func jsPromise(fn func(resolve, reject js.Value)) js.Value {
@@ -60,8 +31,6 @@ func jsPromise(fn func(resolve, reject js.Value)) js.Value {
 	return promiseConstructor.New(handler)
 }
 
-type envelopeOperation func(readers []io.ReadSeeker, params map[string]interface{}, out *bytes.Buffer) error
-
 func bytesToReaders(files [][]byte) []io.ReadSeeker {
 	readers := make([]io.ReadSeeker, len(files))
 	for i, f := range files {
@@ -70,7 +39,28 @@ func bytesToReaders(files [][]byte) []io.ReadSeeker {
 	return readers
 }
 
-func wrapOperation(name string, minFiles int, fn envelopeOperation) js.Func {
+func parseInput(args []js.Value, minFiles int) (*Envelope, error) {
+	if len(args) < 1 {
+		return nil, errors.New("esperado 1 argumento (envelope)")
+	}
+
+	jsBuf := args[0]
+	rawEnvelope := make([]byte, jsBuf.Get("length").Int())
+	js.CopyBytesToGo(rawEnvelope, jsBuf)
+
+	envelope, err := decodeEnvelope(rawEnvelope)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(envelope.Files) < minFiles {
+		return nil, fmt.Errorf("são necessários pelo menos %d arquivo(s)", minFiles)
+	}
+
+	return envelope, nil
+}
+
+func wrapOperation(name string, minFiles int, multiFile bool, fn envelopeOperation) js.Func {
 	return js.FuncOf(func(this js.Value, args []js.Value) any {
 		return jsPromise(func(resolve, reject js.Value) {
 			defer func() {
@@ -79,52 +69,31 @@ func wrapOperation(name string, minFiles int, fn envelopeOperation) js.Func {
 				}
 			}()
 
-			execute := func() ([]byte, error) {
-				if len(args) < 1 {
-					return nil, fmt.Errorf("esperado 1 argumento (envelope)")
-				}
-
-				jsBuf := args[0]
-				rawEnvelope := make([]byte, jsBuf.Get("length").Int())
-				js.CopyBytesToGo(rawEnvelope, jsBuf)
-
-				envelope, err := decodeEnvelope(rawEnvelope)
-				if err != nil {
-					return nil, err
-				}
-
-				if len(envelope.Files) < minFiles {
-					return nil, fmt.Errorf("são necessários pelo menos %d arquivo(s)", minFiles)
-				}
-
-				var out bytes.Buffer 
-				
-				err = fn(bytesToReaders(envelope.Files), envelope.Params, &out)
-				if err != nil {
-					return nil, fmt.Errorf("falhou: %v", err)
-				}
-
-				return encodeEnvelope(out.Bytes()), nil
-			}
-
-			outBytes, err := execute()
+			envelope, err := parseInput(args, minFiles)
 			if err != nil {
 				reject.Invoke(fmt.Sprintf("%s: %v", name, err))
 				return
 			}
 
+			var out bytes.Buffer
+			if err := fn(bytesToReaders(envelope.Files), envelope.Params, &out); err != nil {
+				reject.Invoke(fmt.Sprintf("%s: %v", name, err))
+				return
+			}
+
+			var fileList []byte
+			if multiFile {
+				fileList = out.Bytes() // já é uma lista pronta, só usa direto
+			} else {
+				fileList = encodeFileList([][]byte{out.Bytes()}) // embrulha o único resultado
+			}
+
+			outBytes := wrapWithMagicAndParams(fileList) // adiciona magic+paramsLen no envelope final
 			jsResult := js.Global().Get("Uint8Array").New(len(outBytes))
 			js.CopyBytesToJS(jsResult, outBytes)
 			resolve.Invoke(jsResult)
 		})
 	})
-}
-
-var magic = []byte{0x50, 0x43, 0x50, 0x55}
-
-type Envelope struct {
-	Files  [][]byte
-	Params map[string]interface{}
 }
 
 func decodeEnvelope(buf []byte) (*Envelope, error) {
@@ -180,5 +149,30 @@ func encodeEnvelope(result []byte) []byte {
 	buf = binary.LittleEndian.AppendUint32(buf, uint32(len(paramsBytes)))
 	buf = append(buf, paramsBytes...)
 
+	return buf
+}
+
+func encodeFileList(files [][]byte) []byte {
+	totalSize := 4
+	for _, f := range files {
+		totalSize += 4 + len(f)
+	}
+	buf := make([]byte, 0, totalSize)
+	buf = binary.LittleEndian.AppendUint32(buf, uint32(len(files)))
+	for _, f := range files {
+		buf = binary.LittleEndian.AppendUint32(buf, uint32(len(f)))
+		buf = append(buf, f...)
+	}
+	return buf
+}
+
+// fecha o envelope completo — magic + (fileList já pronto) + params
+func wrapWithMagicAndParams(fileListBytes []byte) []byte {
+	paramsBytes := []byte("{}")
+	buf := make([]byte, 0, len(magic)+len(fileListBytes)+4+len(paramsBytes))
+	buf = append(buf, magic...)
+	buf = append(buf, fileListBytes...)
+	buf = binary.LittleEndian.AppendUint32(buf, uint32(len(paramsBytes)))
+	buf = append(buf, paramsBytes...)
 	return buf
 }

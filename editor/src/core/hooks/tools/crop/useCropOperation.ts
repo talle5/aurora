@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next";
 import {
   useToolOperation,
-  CustomProcessorResult,
   defineCustomTool,
 } from "@app/hooks/tools/shared/useToolOperation";
 import { createStandardErrorHandler } from "@app/utils/toolErrorHandler";
@@ -9,18 +8,12 @@ import {
   CropParameters,
   defaultParameters,
 } from "@app/hooks/tools/crop/useCropParameters";
-import { invoke } from "@app/brain/pdf-cpu";
+import { createSimpleCustomProcessor } from "@app/brain/pdf-cpu";
 
-const customProcessor = async (
-  parameters: CropParameters,
-  files: File[],
-): Promise<CustomProcessorResult> => {
-  const resultData = await invoke("crop", files, parameters.cropArea);
-  const file = new File([resultData as BlobPart], "merged_output.pdf", {
-    type: "application/pdf"
-  });
-  return { files: [file], consumedAllInputs: true };
-};
+const customProcessor = createSimpleCustomProcessor<CropParameters>(
+  "crop",
+  "removed_signatures_output.pdf",
+);
 
 export const cropOperationConfig = defineCustomTool({
   customProcessor,

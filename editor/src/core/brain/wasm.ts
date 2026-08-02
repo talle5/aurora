@@ -1,6 +1,6 @@
 import { Rectangle } from "@app/utils/cropCoordinates";
 import { initWasmModule, waitForGlobalFunction } from "./wasm-loader";
-import { encodeEnvelope, decodeEnvelope } from "./pdf-cpu";
+import { encodeEnvelope, decodeEnvelope } from "./utils";
 import { RotateParameters } from "@app/hooks/tools/rotate/useRotateParameters";
 import { AddPasswordParameters } from "@app/hooks/tools/addPassword/useAddPasswordParameters";
 
@@ -15,6 +15,8 @@ export interface PdfEngine {
   encrypt(files: PdfData, secrets: AddPasswordParameters): Promise<Uint8Array>;
   unlockForm(files: PdfData): Promise<Uint8Array>;
   removeSignatures(files: PdfData): Promise<Uint8Array>;
+  removePages(files: PdfData): Promise<Uint8Array>;
+  extractImages(files: PdfData): Promise<Uint8Array>;
 }
 
 let engineInstance: PdfEngine | null = null;
