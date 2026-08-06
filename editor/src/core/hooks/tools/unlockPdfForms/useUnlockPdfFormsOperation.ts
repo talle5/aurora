@@ -7,18 +7,13 @@ import {
   UnlockPdfFormsParameters,
   defaultParameters,
 } from "@app/hooks/tools/unlockPdfForms/useUnlockPdfFormsParameters";
-import { CustomProcessorResult, defineCustomTool } from "@app/tools/shared/toolOperationTypes";
-import { invoke } from "@app/brain/pdf-cpu";
+import { defineCustomTool } from "@app/tools/shared/toolOperationTypes";
+import { createCustomProcessor } from "@app/brain/pdf-cpu";
 
-export const customProcessor = async (
-  _parameters: UnlockPdfFormsParameters,
-  files: File[]): Promise<CustomProcessorResult> => {
-  const resultData = await invoke("unlockForm", files);
-  const file = new File([resultData as BlobPart], "merged_output.pdf", {
-    type: "application/pdf"
-  });
-  return { files: [file], consumedAllInputs: true };
-};
+const customProcessor = createCustomProcessor<UnlockPdfFormsParameters>(
+  "unlockForm",
+  "unlocked.pdf",
+);
 
 export const unlockPdfFormsOperationConfig = defineCustomTool({
   customProcessor,

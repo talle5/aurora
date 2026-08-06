@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"runtime/debug"
 	"syscall/js"
 
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
@@ -65,6 +66,7 @@ func wrapOperation(name string, minFiles int, multiFile bool, fn envelopeOperati
 		return jsPromise(func(resolve, reject js.Value) {
 			defer func() {
 				if r := recover(); r != nil {
+					debug.PrintStack()
 					reject.Invoke(fmt.Sprintf("%s: panic recuperado: %v", name, r))
 				}
 			}()
@@ -133,23 +135,6 @@ func decodeEnvelope(buf []byte) (*Envelope, error) {
 	}
 
 	return &Envelope{Files: files, Params: params}, nil
-}
-
-func encodeEnvelope(result []byte) []byte {
-	// resultado de saída: 1 arquivo só, sem params — envelope simplificado
-	paramsBytes := []byte("{}")
-	buf := make([]byte, 0, 4+4+4+len(result)+4+len(paramsBytes))
-
-	buf = append(buf, magic...)
-	buf = binary.LittleEndian.AppendUint32(buf, 1) // fileCount = 1
-
-	buf = binary.LittleEndian.AppendUint32(buf, uint32(len(result)))
-	buf = append(buf, result...)
-
-	buf = binary.LittleEndian.AppendUint32(buf, uint32(len(paramsBytes)))
-	buf = append(buf, paramsBytes...)
-
-	return buf
 }
 
 func encodeFileList(files [][]byte) []byte {

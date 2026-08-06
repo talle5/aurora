@@ -3,9 +3,9 @@ import { useToolOperation } from "@app/hooks/tools/shared/useToolOperation";
 import { createStandardErrorHandler } from "@app/utils/toolErrorHandler";
 import { defineCustomTool } from "@app/tools/shared/toolOperationTypes";
 import { RemoveCertificateSignParameters } from "@app/hooks/tools/removeCertificateSign/useRemoveCertificateSignParameters";
-import { createSimpleCustomProcessor } from "@app/brain/pdf-cpu";
+import { createCustomProcessor } from "@app/brain/pdf-cpu";
 
-const customProcessor = createSimpleCustomProcessor<RemoveCertificateSignParameters>(
+const customProcessor = createCustomProcessor<RemoveCertificateSignParameters>(
   "removeSignatures",
   "removed_signatures_output.pdf",
 );

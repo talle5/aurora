@@ -30,7 +30,6 @@ import { createNewStirlingFileStub } from "@app/types/fileContext";
 import { ToolOperation } from "@app/types/file";
 import { trackEditorOperation } from "@app/services/analytics";
 import { useWillUseCloud } from "@app/hooks/useWillUseCloud";
-import { useCreditCheck } from "@app/hooks/useCreditCheck";
 import { notifyPdfProcessingComplete } from "@app/services/desktopNotificationService";
 import {
   buildInputTracking,
@@ -115,7 +114,6 @@ export const useToolOperation = <TParams>(
       : config.endpoint
     : undefined;
 
-  const { checkCredits } = useCreditCheck(config.operationType, endpointString);
   const willUseCloud = useWillUseCloud(endpointString);
 
   // Track last operation for undo functionality
@@ -180,14 +178,6 @@ export const useToolOperation = <TParams>(
           ? (config.endpoint(params) ?? undefined)
           : config.endpoint
         : undefined;
-
-      // Credit check — no-op in core builds, real check in desktop/SaaS versions.
-      // Pass runtime endpoint so the check can determine if this routes locally (no credits needed).
-      const creditError = await checkCredits(runtimeEndpoint);
-      if (creditError !== null) {
-        actions.setError(creditError);
-        return;
-      }
 
       // Reset state
       actions.setLoading(true);
@@ -610,7 +600,6 @@ export const useToolOperation = <TParams>(
       cleanupBlobUrls,
       extractZipFiles,
       willUseCloud,
-      checkCredits,
     ],
   );
 

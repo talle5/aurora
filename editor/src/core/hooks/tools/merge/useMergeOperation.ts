@@ -9,9 +9,9 @@ import {
   MergeParameters,
   defaultParameters,
 } from "@app/hooks/tools/merge/useMergeParameters";
-import { createSimpleCustomProcessor} from "@app/brain/pdf-cpu";
+import { createCustomProcessor} from "@app/brain/pdf-cpu";
 
-const customProcessor = createSimpleCustomProcessor<MergeParameters>(
+const customProcessor = createCustomProcessor<MergeParameters>(
   "merge",
   "removed_signatures_output.pdf",
 );

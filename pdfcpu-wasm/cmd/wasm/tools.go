@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 
@@ -144,9 +145,26 @@ func RemoveSignatures(readers []io.ReadSeeker, params map[string]interface{}, ou
 	return api.RemoveSignatures(readers[0], out, baseConf())
 }
 
-func AddWatherMark(readers []io.ReadSeeker, params map[string]interface{}, out *bytes.Buffer) error {
-	// paginas := params["paginas"].([]string)
-	return api.AddWatermarksSliceMap(readers[0], out, nil, baseConf())
+func AddWaterMark(readers []io.ReadSeeker, params map[string]interface{}, out *bytes.Buffer) error {
+	watermarkText, _ := params["watermarkText"].(string)
+	if watermarkText == "" {
+		return errors.New("addWatermark: watermarkText é obrigatório")
+	}
+
+	desc := "" // descrição vazia = usa os defaults internos do TextWatermark
+	if fontSize, ok := params["fontSize"].(float64); ok {
+		desc = fmt.Sprintf("points:%d", int(fontSize)) // sintaxe a confirmar
+	}
+
+	onTop := true
+	update := false
+
+	wm, err := api.TextWatermark(watermarkText, desc, onTop, update, types.POINTS)
+	if err != nil {
+		return fmt.Errorf("addWatermark: descrição inválida: %w", err)
+	}
+
+	return api.AddWatermarks(readers[0], out, nil, wm, baseConf())
 }
 
 func extractImages(readers []io.ReadSeeker, params map[string]interface{}, out *bytes.Buffer) error {
@@ -161,7 +179,7 @@ func extractImages(readers []io.ReadSeeker, params map[string]interface{}, out *
 			data, err := io.ReadAll(img)
 			if err != nil {
 				return err
-			} 
+			}
 			images = append(images, data)
 		}
 	}

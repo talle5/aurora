@@ -3,12 +3,11 @@ import { useToolOperation } from "@app/hooks/tools/shared/useToolOperation";
 import { createStandardErrorHandler } from "@app/utils/toolErrorHandler";
 import { defineCustomTool } from "@app/tools/shared/toolOperationTypes";
 import { ExtractImagesParameters } from "@app/hooks/tools/extractImages/useExtractImagesParameters";
-import { createSimpleCustomProcessor } from "@app/brain/pdf-cpu";
+import { createCustomProcessor } from "@app/brain/pdf-cpu";
 
-const customProcessor = createSimpleCustomProcessor<ExtractImagesParameters>(
+const customProcessor = createCustomProcessor<ExtractImagesParameters>(
   "extractImages",
-  "images.png",
-  "images/png",
+  (i: any, _total: any, _params: any) => ({ name: `page_${i}.pdf`, mimeType: "image/jpeg" }),
 );
 
 export const extractImagesOperationConfig = defineCustomTool({

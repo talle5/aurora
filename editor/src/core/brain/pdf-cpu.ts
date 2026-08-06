@@ -7,8 +7,6 @@ type Methods = {
   [K in keyof PdfEngine]: PdfEngine[K] extends (...args: any[]) => any ? K : never;
 }[keyof PdfEngine];
 
-type Fn<T extends Methods> = Extract<PdfEngine[T], (...args: any[]) => any>;
-
 export async function invoke(
   method: Methods,
   files: File[],
@@ -21,38 +19,55 @@ export async function invoke(
   if (typeof targetFunction !== "function") {
     throw new Error(`Método "${method}" não existe no engine (verifique se foi registrado no Go)`);
   }
-  return targetFunction(data, params);
+  try {
+    console.log(params);
+    return await targetFunction(data, params);
+  } catch (e) {
+    console.error(e);
+    throw e;
+  }
 }
 
-export function createSimpleCustomProcessor<P>(
-  method: Methods,
-  outputName: string | ((parameters: P, files: File[]) => string),
-  mimeType: string = "application/pdf",
-  toParams?: (parameters: P) => Record<string, unknown>,
-) {
-  return async (parameters: P, files: File[]): Promise<CustomProcessorResult> => {
-    const name = typeof outputName === "function" ? outputName(parameters, files) : outputName;
-    const params = toParams ? toParams(parameters) : {};
+type MultiFileNaming<P> = (
+  index: number,
+  total: number,
+  parameters: P,
+  files: File[]
+) => { name: string; mimeType: string };
 
+type SimpleOutputName<P> = string | ((parameters: P, files: File[]) => string);
+
+export function createCustomProcessor<P>(
+  method: Methods,
+  naming: SimpleOutputName<P> | MultiFileNaming<P>,
+  options: {
+    multiFile?: boolean;
+    mimeType?: string;
+    toParams?: (p: P) => Record<string, unknown>;
+  } = {},
+) {
+  const { multiFile = false, mimeType = "application/pdf", toParams } = options;
+
+  const resolveParams = toParams ?? ((p: P) => p as unknown as Record<string, unknown>);
+
+  return async (parameters: P, files: File[]): Promise<CustomProcessorResult> => {
+    const params = resolveParams(parameters);
     const results = await invoke(method, files, params);
-    const file = new File([results[0].buffer as ArrayBuffer], name, { type: mimeType });
 
-    return { files: [file], consumedAllInputs: true };
-  };
-}
+    const outFiles = results.map((result, i) => {
+      let name: string;
+      let finalMime = mimeType;
 
-export function createMultiFileCustomProcessor<P>(
-  method: Methods,
-  naming: (index: number, total: number, parameters: P, files: File[]) => { name: string; mimeType: string },
-  toParams?: (parameters: P) => Record<string, unknown>,
-) {
-  return async (parameters: P, files: File[]): Promise<CustomProcessorResult> => {
-    const params = toParams ? toParams(parameters) : {};
-    const results = await invoke(method, files, params); // Uint8Array[]
+      if (multiFile) {
+        const resolved = (naming as MultiFileNaming<P>)(i, results.length, parameters, files);
+        name = resolved.name;
+        finalMime = resolved.mimeType;
+      } else {
+        const simpleName = naming as SimpleOutputName<P>;
+        name = typeof simpleName === "function" ? simpleName(parameters, files) : simpleName;
+      }
 
-    const outFiles = results.map((bytes, i) => {
-      const { name, mimeType } = naming(i, results.length, parameters, files);
-      return new File([bytes.buffer as ArrayBuffer], name, { type: mimeType });
+      return new File([result.buffer as ArrayBuffer], name, { type: finalMime });
     });
 
     return { files: outFiles, consumedAllInputs: true };

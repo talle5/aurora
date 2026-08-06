@@ -17,6 +17,7 @@ export interface PdfEngine {
   removeSignatures(files: PdfData): Promise<Uint8Array>;
   removePages(files: PdfData): Promise<Uint8Array>;
   extractImages(files: PdfData): Promise<Uint8Array>;
+  addWaterMark(files: PdfData): Promise<Uint8Array>;
 }
 
 let engineInstance: PdfEngine | null = null;
@@ -31,10 +32,10 @@ export async function loadPdfCpu(): Promise<PdfEngine> {
 
   const manifest = (globalThis as any).pdfcpuGetManifest() as Record<string, number>;
 
-  const call = async (func: string, files: PdfData, params?: Record<string, unknown>) => {
+  const call = async (func: string, files: PdfData, params?: Record<string, unknown>): Promise<Uint8Array[]> => {
     const envelope = encodeEnvelope({ files, params });
     const res = await (globalThis as any)[func](envelope);
-    return decodeEnvelope(res).files[0];
+    return decodeEnvelope(res).files;
   };
 
   engineInstance = {} as PdfEngine;

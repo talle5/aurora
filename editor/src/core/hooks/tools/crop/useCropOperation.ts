@@ -8,9 +8,9 @@ import {
   CropParameters,
   defaultParameters,
 } from "@app/hooks/tools/crop/useCropParameters";
-import { createSimpleCustomProcessor } from "@app/brain/pdf-cpu";
+import { createCustomProcessor } from "@app/brain/pdf-cpu";
 
-const customProcessor = createSimpleCustomProcessor<CropParameters>(
+const customProcessor = createCustomProcessor<CropParameters>(
   "crop",
   "removed_signatures_output.pdf",
 );

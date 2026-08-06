@@ -8,9 +8,9 @@ import {
   RotateParameters,
   defaultParameters,
 } from "@app/hooks/tools/rotate/useRotateParameters";
-import { createSimpleCustomProcessor } from "@app/brain/pdf-cpu";
+import { createCustomProcessor } from "@app/brain/pdf-cpu";
 
-const customProcessor = createSimpleCustomProcessor<RotateParameters>(
+const customProcessor = createCustomProcessor<RotateParameters>(
   "rotate",
   "removed_signatures_output.pdf",
 );

@@ -16,7 +16,8 @@ func main() {
 		{"pdfcpuZoom", 1, false, Zoom},
 		{"pdfcpuRemoveSignatures", 1, false, RemoveSignatures},
 		{"pdfcpuRemovePages", 1, false, RemovePages},
-		{"pdfcpuextractImages", 1, true, extractImages},
+		{"pdfcpuExtractImages", 1, true, extractImages},
+		{"pdfcpuAddWaterMark", 1, false, AddWaterMark},
 	}
 
 	manifest := make(map[string]interface{})

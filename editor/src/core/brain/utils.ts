@@ -51,7 +51,7 @@ class BufferReader {
 
   readBlock(): Uint8Array {
     const length = this.readUint32();
-    const slice = this.buf.slice(this.offset, this.offset + length);
+    const slice = this.buf.subarray(this.offset, this.offset + length); // era .slice()
     this.offset += length;
     return slice;
   }
