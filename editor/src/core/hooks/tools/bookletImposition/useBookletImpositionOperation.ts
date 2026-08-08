@@ -4,15 +4,13 @@ import { createStandardErrorHandler } from "@app/utils/toolErrorHandler";
 import { CustomProcessorResult, defineCustomTool } from "@app/tools/shared/toolOperationTypes";
 import { BookletImpositionParameters } from "@app/hooks/tools/bookletImposition/useBookletImpositionParameters";
 
-// BYPASS: operação ainda não portada para o motor local (WASM).
-// Devolve o arquivo original sem alteração, só pra não quebrar o fluxo da UI.
-const customProcessor = async (
-  _parameters: BookletImpositionParameters,
-  files: File[],
-): Promise<CustomProcessorResult> => {
-  console.warn('[bookletImposition] operação ainda não implementada localmente — bypass ativo, arquivo devolvido sem alteração');
-  return { files, consumedAllInputs: true };
-};
+import { createCustomProcessor } from "@app/brain/pdf-cpu";
+
+const customProcessor = createCustomProcessor<BookletImpositionParameters>(
+  "booklet",
+  "removed_signatures_output.pdf",
+);
+
 
 export const bookletImpositionOperationConfig = defineCustomTool({
   customProcessor,

@@ -1,0 +1,3 @@
+[submodule "pdfcpu-wasm"]
+	path = pdfcpu-wasm
+	url = git@github.com:talle5/pdfcpu_wasm.git

@@ -69,20 +69,11 @@ export interface PdfCompliance {
 
 /** Font info within a page */
 export interface PdfFontInfo {
-  Name?: string;
-  IsEmbedded?: boolean;
-  Subtype?: string;
-  ItalicAngle?: number;
-  IsItalic?: boolean;
-  IsBold?: boolean;
-  IsFixedPitch?: boolean;
-  IsSerif?: boolean;
-  IsSymbolic?: boolean;
-  IsScript?: boolean;
-  IsNonsymbolic?: boolean;
-  FontFamily?: string;
-  FontWeight?: number;
-  Count?: number;
+  embedded: boolean,
+  encoding: string,
+  name: string,
+  prefix: string,
+  type: string
 }
 
 /** Image info within a page */
