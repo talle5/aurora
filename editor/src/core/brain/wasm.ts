@@ -8,6 +8,7 @@ export type PdfMethodName =
   | "rotate"
   | "optimize"
   | "crop"
+  | "zoom"
   | "validateSignatures"
   | "encrypt"
   | "unlockForm"

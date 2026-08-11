@@ -13,9 +13,9 @@
  * The Vitest suites in `editor/src/core/tests/` run these over every entry in
  * {@link I18N_PROJECTS}, so one implementation guards both apps.
  */
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { parse } from "smol-toml";
 
@@ -315,7 +315,7 @@ const shapeToMatcher = (shape: string): RegExp => {
   // spanning key levels. Multi-segment interpolations use ignoredKeyPatterns.
   const escaped = shape
     .split("*")
-    .map((part) => part.replace(/[.+?^${}()|[\]\\]/g, "\\$&"))
+    .map((part) => part.replace(/[.+?^${}()|[\]\\]/g, String.raw`\$&`))
     .join("[^.]+");
   return new RegExp(`^${escaped}$`);
 };

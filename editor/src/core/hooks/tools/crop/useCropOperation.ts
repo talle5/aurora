@@ -13,6 +13,9 @@ import { createCustomProcessor } from "@app/brain/pdf-cpu";
 const customProcessor = createCustomProcessor<CropParameters>(
   "crop",
   "removed_signatures_output.pdf",
+  {
+    toParams: ({ cropArea }: CropParameters) => ({ ...cropArea })
+  }
 );
 
 export const cropOperationConfig = defineCustomTool({

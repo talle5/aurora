@@ -27,8 +27,8 @@ const WatermarkTextStyle = ({
           {t("watermark.settings.color", "Colour")}
         </Text>
         <ColorInput
-          value={parameters.customColor}
-          onChange={(value) => onParameterChange("customColor", value)}
+          value={parameters.fillColor}
+          onChange={(value) => onParameterChange("fillColor", value)}
           disabled={disabled}
           format="hex"
           popoverProps={{
@@ -43,8 +43,8 @@ const WatermarkTextStyle = ({
           {t("watermark.settings.alphabet", "Alphabet")}
         </Text>
         <Select
-          value={parameters.alphabet}
-          onChange={(value) => value && onParameterChange("alphabet", value)}
+          value={parameters.fontName}
+          onChange={(value) => value && onParameterChange("fontName", value)}
           data={alphabetOptions}
           disabled={disabled}
           comboboxProps={{

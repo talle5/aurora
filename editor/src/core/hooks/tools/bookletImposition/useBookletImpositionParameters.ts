@@ -6,10 +6,10 @@ import {
 
 export interface BookletImpositionParameters extends BaseParameters {
   pagesPerSheet: 2;
-  addBorder: boolean;
-  spineLocation: "LEFT" | "RIGHT";
-  addGutter: boolean;
-  gutterSize: number;
+  border: boolean;
+  binding: "long" | "shot";
+  addMargim: boolean;
+  margim: number;
   doubleSided: boolean;
   duplexPass: "BOTH" | "FIRST" | "SECOND";
   flipOnShortEdge: boolean;
@@ -17,10 +17,10 @@ export interface BookletImpositionParameters extends BaseParameters {
 
 export const defaultParameters: BookletImpositionParameters = {
   pagesPerSheet: 2,
-  addBorder: false,
-  spineLocation: "LEFT",
-  addGutter: false,
-  gutterSize: 12,
+  border: false,
+  binding: "long",
+  addMargim: false,
+  margim: 12,
   doubleSided: true,
   duplexPass: "BOTH",
   flipOnShortEdge: false,

@@ -32,7 +32,7 @@ const WatermarkStyleSettings = ({
               "rotation",
               typeof value === "number"
                 ? value
-                : parseInt(value as string, 10) || 0,
+                : Number.parseInt(value as string, 10) || 0,
             )
           }
           min={-360}
@@ -50,7 +50,7 @@ const WatermarkStyleSettings = ({
               "opacity",
               typeof value === "number"
                 ? value
-                : parseInt(value as string, 10) || 50,
+                : Number.parseInt(value as string, 10) || 50,
             )
           }
           min={0}
@@ -71,7 +71,7 @@ const WatermarkStyleSettings = ({
               "widthSpacer",
               typeof value === "number"
                 ? value
-                : parseInt(value as string, 10) || 50,
+                : Number.parseInt(value as string, 10) || 50,
             )
           }
           min={0}
@@ -89,7 +89,7 @@ const WatermarkStyleSettings = ({
               "heightSpacer",
               typeof value === "number"
                 ? value
-                : parseInt(value as string, 10) || 50,
+                : Number.parseInt(value as string, 10) || 50,
             )
           }
           min={0}

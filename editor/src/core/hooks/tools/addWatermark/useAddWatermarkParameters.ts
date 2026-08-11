@@ -13,8 +13,8 @@ export interface AddWatermarkParameters extends BaseParameters {
   opacity: number;
   widthSpacer: number;
   heightSpacer: number;
-  alphabet: string;
-  customColor: string;
+  fontName: string;
+  fillColor: string;
   convertPDFToImage: boolean;
 }
 
@@ -26,8 +26,8 @@ export const defaultParameters: AddWatermarkParameters = {
   opacity: 50,
   widthSpacer: 50,
   heightSpacer: 50,
-  alphabet: "roman",
-  customColor: "#d3d3d3",
+  fontName: "helvica",
+  fillColor: "#d3d3d3",
   convertPDFToImage: false,
 };
 

@@ -167,19 +167,11 @@ function subpathBareRedirectPlugin(subpath: string): PluginOption {
 // (task frontend:typecheck:cloud) to prove it carries no saas/desktop-only deps.
 const VALID_MODES = [
   "core",
-  "proprietary",
-  "saas",
-  "desktop",
-  "prototypes",
 ] as const;
 type BuildMode = (typeof VALID_MODES)[number];
 
 const TSCONFIG_MAP: Record<BuildMode, string> = {
   core: "./tsconfig.core.vite.json",
-  proprietary: "./tsconfig.proprietary.vite.json",
-  saas: "./tsconfig.saas.vite.json",
-  desktop: "./tsconfig.desktop.vite.json",
-  prototypes: "./tsconfig.prototypes.vite.json",
 };
 
 export default defineConfig(async ({ mode, command }) => {
@@ -195,33 +187,13 @@ export default defineConfig(async ({ mode, command }) => {
   // frontend/editor/ the cwd-based lookup would miss editor/.env*.
   const env = loadEnv(mode, import.meta.dirname, "");
   const parentEnv = loadEnv(mode, resolve(import.meta.dirname, ".."), "");
-
-  // Effective mode: --mode > STIRLING_FLAVOR > ENABLE_SAAS > DISABLE_ADDITIONAL_FEATURES > proprietary.
-  const explicitMode = (VALID_MODES as readonly string[]).includes(mode)
-    ? (mode as BuildMode)
-    : null;
-  const flavor = (process.env.STIRLING_FLAVOR ?? "").toLowerCase();
-  const flavorMode: BuildMode | null =
-    flavor === "core" || flavor === "proprietary" || flavor === "saas"
-      ? (flavor as BuildMode)
-      : null;
-  const effectiveMode: BuildMode =
-    explicitMode ??
-    flavorMode ??
-    (process.env.ENABLE_SAAS === "true"
-      ? "saas"
-      : process.env.DISABLE_ADDITIONAL_FEATURES === "true"
-        ? "core"
-        : "proprietary");
+  const effectiveMode: BuildMode = "core"
 
   const tsconfigProject = TSCONFIG_MAP[effectiveMode];
 
   // Subpath the app is served under (base becomes "/<runSubpath>/"). Empty = root.
   const runSubpath = (env.RUN_SUBPATH || "").replace(/^\/+|\/+$/g, "");
 
-  // Backend proxy target: default localhost:8080. Override via BACKEND_URL env var
-  // so the top-level dev launcher can wire a dynamically-assigned backend port.
-  const backendUrl = process.env.BACKEND_URL || "http://localhost:8080";
   // Allow host header checks to be configured via env so LAN/reverse-proxy
   // dev setups don't require editing this file for each machine.
   const allowedHostsRaw =
@@ -233,27 +205,6 @@ export default defineConfig(async ({ mode, command }) => {
     .split(",")
     .map((host) => host.trim())
     .filter(Boolean);
-  const backendProxy = {
-    target: backendUrl,
-    changeOrigin: true,
-    secure: false,
-    xfwd: true,
-  };
-
-  // Shared between `vite` (dev) and `vite preview` (production-build serve, used
-  // in CI/E2E) so the live test suite still resolves /api → :8080.
-  const backendProxyConfig =
-    effectiveMode === "desktop"
-      ? undefined
-      : {
-          "/api": backendProxy,
-          "/oauth2": backendProxy,
-          "/saml2": backendProxy,
-          "/login/oauth2": backendProxy,
-          "/login/saml2": backendProxy,
-          "/swagger-ui": backendProxy,
-          "/v1/api-docs": backendProxy,
-        };
 
   return {
     define: {
@@ -344,13 +295,13 @@ export default defineConfig(async ({ mode, command }) => {
         ignored: ["**/src-tauri/**"],
       },
       // Only use proxy in web mode - Tauri handles backend connections directly
-      proxy: backendProxyConfig,
+      proxy: {},
     },
     preview: {
       host: true,
       port: 5173,
       strictPort: true,
-      proxy: backendProxyConfig,
+      proxy: {},
     },
     build: {
       target: "esnext",

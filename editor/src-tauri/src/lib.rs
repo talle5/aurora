@@ -6,38 +6,23 @@ mod state;
 
 use commands::{
     add_opened_file,
-    cleanup_backend,
-    clear_auth_token,
     clear_opened_files,
-    clear_refresh_token,
-    clear_user_info,
     forward_files_to_window,
     is_default_pdf_handler,
-    get_auth_token,
-    get_backend_port,
     get_connection_config,
     get_opened_files,
     open_files_in_new_window,
     open_in_new_window,
     pop_opened_files,
     pop_window_file_ids,
-    get_refresh_token,
-    get_user_info,
     is_first_launch,
-    login,
-    proxy_local_pdf_request,
     reset_setup_completion,
-    save_auth_token,
-    save_refresh_token,
-    save_user_info,
     set_connection_mode,
     set_as_default_pdf_handler,
     get_desktop_os,
     get_update_mode,
     print_pdf_file_native,
     set_update_mode,
-    start_backend,
-    start_oauth_login,
     can_install_updates,
     check_for_update,
     download_and_install_update,
@@ -147,23 +132,10 @@ pub fn run() {
         add_log(format!("⚠️ Failed to apply provisioning file: {}", err));
       }
 
-      // Start backend immediately, non-blocking
-      let app_handle = app.handle().clone();
-
-      tauri::async_runtime::spawn(async move {
-        add_log("🚀 Starting bundled backend in background".to_string());
-        let connection_state = app_handle.state::<AppConnectionState>();
-        if let Err(e) = commands::backend::start_backend(app_handle.clone(), connection_state).await {
-          add_log(format!("⚠️ Backend start failed: {}", e));
-        }
-      });
-
       add_log("🔍 DEBUG: Setup completed".to_string());
       Ok(())
     })
     .invoke_handler(tauri::generate_handler![
-      start_backend,
-      get_backend_port,
       get_opened_files,
       pop_opened_files,
       clear_opened_files,
@@ -177,18 +149,6 @@ pub fn run() {
       set_as_default_pdf_handler,
       is_first_launch,
       reset_setup_completion,
-      login,
-      proxy_local_pdf_request,
-      save_auth_token,
-      get_auth_token,
-      clear_auth_token,
-      save_refresh_token,
-      get_refresh_token,
-      clear_refresh_token,
-      save_user_info,
-      get_user_info,
-      clear_user_info,
-      start_oauth_login,
       get_desktop_os,
       print_pdf_file_native,
       can_install_updates,
@@ -205,7 +165,6 @@ pub fn run() {
       match event {
         RunEvent::ExitRequested { .. } => {
           add_log("🔄 App exit requested, cleaning up...".to_string());
-          cleanup_backend();
           // Use Tauri's built-in cleanup
           app_handle.cleanup_before_exit();
         }

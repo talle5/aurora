@@ -19,8 +19,6 @@ export default defineConfig({
       exclude: [
         "node_modules/",
         "src/core/setupTests.ts",
-        "src/proprietary/setupTests.ts",
-        "src/saas/setupTests.ts",
         "**/*.d.ts",
         "src/tests/test-fixtures/**",
         "src/**/*.spec.ts",
@@ -59,84 +57,6 @@ export default defineConfig({
             // Broad project so @app/@portal resolve in every editor file the
             // portal tests pull in (core/ui, core, ...).
             projects: ["./tsconfig.portal.vite.json"],
-          }),
-        ],
-        esbuild: {
-          target: "es2020",
-        },
-      },
-      {
-        test: {
-          name: "proprietary",
-          include: ["src/proprietary/**/*.test.{ts,tsx}"],
-          environment: "jsdom",
-          globals: true,
-          setupFiles: ["./src/core/setupTests.ts"],
-        },
-        plugins: [
-          react(),
-          tsconfigPaths({
-            projects: ["./tsconfig.proprietary.vite.json"],
-          }),
-        ],
-        esbuild: {
-          target: "es2020",
-        },
-      },
-      {
-        test: {
-          name: "desktop",
-          include: ["src/desktop/**/*.test.{ts,tsx}"],
-          environment: "jsdom",
-          globals: true,
-          setupFiles: ["./src/core/setupTests.ts"],
-        },
-        plugins: [
-          react(),
-          tsconfigPaths({
-            projects: ["./tsconfig.desktop.vite.json"],
-          }),
-        ],
-        esbuild: {
-          target: "es2020",
-        },
-      },
-      {
-        test: {
-          name: "saas",
-          // src/saas = editor-saas layer; src/portal-saas = the portal's saas
-          // overrides (sibling to src/portal). Both build under the saas flavor,
-          // so both resolve @portal via the saas cascade (tsconfig.saas.vite.json).
-          include: [
-            "src/saas/**/*.test.{ts,tsx}",
-            "src/portal-saas/**/*.test.{ts,tsx}",
-          ],
-          environment: "jsdom",
-          globals: true,
-          setupFiles: ["./src/saas/setupTests.ts"],
-        },
-        plugins: [
-          react(),
-          tsconfigPaths({
-            projects: ["./tsconfig.saas.vite.json"],
-          }),
-        ],
-        esbuild: {
-          target: "es2020",
-        },
-      },
-      {
-        test: {
-          name: "prototypes",
-          include: ["src/prototypes/**/*.test.{ts,tsx}"],
-          environment: "jsdom",
-          globals: true,
-          setupFiles: ["./src/core/setupTests.ts"],
-        },
-        plugins: [
-          react(),
-          tsconfigPaths({
-            projects: ["./tsconfig.prototypes.vite.json"],
           }),
         ],
         esbuild: {

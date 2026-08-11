@@ -11,7 +11,7 @@ export interface TomlBackendOptions {
 }
 
 class TomlBackend implements BackendModule<TomlBackendOptions> {
-  static type = "backend" as const;
+  static readonly type = "backend" as const;
   type = "backend" as const;
 
   constructor(services?: unknown, options?: TomlBackendOptions) {

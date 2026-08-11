@@ -8,6 +8,22 @@ import { createCustomProcessor } from "@app/brain/pdf-cpu";
 const customProcessor = createCustomProcessor<AddWatermarkParameters>(
   "addWaterMark",
   "watermark.pdf",
+  {
+    toParams: (p: AddWatermarkParameters) => {
+      const pp = {
+        points: p.fontSize,
+        rotation: p.rotation,
+        opacity: p.opacity / 100,
+        // widthSpacer: p.widthSpacer,
+        // heightSpacer: p.heightSpacer,
+        fontName: p.fontName,
+        fillColor: p.fillColor
+      }
+      const value = Object.entries(pp).reduce((acc, [a, b]) => `${acc}, ${a}:${b}`, "").substring(2);
+      console.log(value);
+      return { watermarkText: p.watermarkText, desc: value };
+    }
+  }
 );
 
 export const addWatermarkOperationConfig = defineCustomTool({

@@ -129,11 +129,11 @@ const BookletImpositionSettings = ({
           <Stack gap="md" mt="md">
             {/* Right-to-Left Binding */}
             <Checkbox
-              checked={parameters.spineLocation === "RIGHT"}
+              checked={parameters.binding === "shot"}
               onChange={(event) =>
                 onParameterChange(
-                  "spineLocation",
-                  event.currentTarget.checked ? "RIGHT" : "LEFT",
+                  "binding",
+                  event.currentTarget.checked ? "shot" : "long",
                 )
               }
               disabled={disabled}
@@ -157,9 +157,9 @@ const BookletImpositionSettings = ({
 
             {/* Add Border Option */}
             <Checkbox
-              checked={parameters.addBorder}
+              checked={parameters.border}
               onChange={(event) =>
-                onParameterChange("addBorder", event.currentTarget.checked)
+                onParameterChange("border", event.currentTarget.checked)
               }
               disabled={disabled}
               label={
@@ -183,9 +183,9 @@ const BookletImpositionSettings = ({
             {/* Gutter Margin */}
             <Stack gap="xs">
               <Checkbox
-                checked={parameters.addGutter}
+                checked={parameters.addMargim}
                 onChange={(event) =>
-                  onParameterChange("addGutter", event.currentTarget.checked)
+                  onParameterChange("addMargim", event.currentTarget.checked)
                 }
                 disabled={disabled}
                 label={
@@ -206,15 +206,15 @@ const BookletImpositionSettings = ({
                 }
               />
 
-              {parameters.addGutter && (
+              {parameters.addMargim && (
                 <NumberInput
                   label={t(
                     "bookletImposition.gutterSize.label",
                     "Gutter size (points)",
                   )}
-                  value={parameters.gutterSize}
+                  value={parameters.margim}
                   onChange={(value) =>
-                    onParameterChange("gutterSize", value || 12)
+                    onParameterChange("margim", value || 12)
                   }
                   min={6}
                   max={72}

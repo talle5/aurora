@@ -17,7 +17,7 @@ export async function invoke(
 
   const targetFunction = (engine as any)[method];
   if (typeof targetFunction !== "function") {
-    throw new Error(`Método "${method}" não existe no engine (verifique se foi registrado no Go)`);
+    throw new TypeError(`Método "${method}" não existe no engine (verifique se foi registrado no Go)`);
   }
   try {
     console.log(params);
