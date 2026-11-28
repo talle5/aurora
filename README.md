@@ -203,4 +203,4 @@ npm run tauri:build
 
 ## Licença
 
-Consulte o campo `license` em [`package.json`](package.json) e o arquivo [`LICENCE`](LICENCE).
+Consulte os arquivos [`LICENCE`](LICENCE) e [`NOTICE`](NOTICE).

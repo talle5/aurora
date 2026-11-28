@@ -20,19 +20,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-This project is a fork of Stirling-PDF (https://github.com/Stirling-Tools/Stirling-PDF),
-with the following material changes:
-
-- The Java/Spring Boot backend has been removed entirely and replaced with
-  client-side processing via WebAssembly (pdfcpu, https://github.com/pdfcpu/pdfcpu,
-  compiled to WASM), so PDF operations run locally with no server component.
-- Code originating from Stirling-PDF's restricted-license directories
-  (`proprietary/`, `saas/`, `cloud/`, `desktop/`, and the `engine/` module)
-  has been removed and is not included in this repository.
-
-Third-party components used by this project retain their own licenses:
-
-- pdfcpu (https://github.com/pdfcpu/pdfcpu) — Apache License 2.0
