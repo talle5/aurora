@@ -1,13 +1,12 @@
 import react from "@vitejs/plugin-react-swc";
 import { compression, defineAlgorithm } from "vite-plugin-compression2";
 import fs from "node:fs/promises";
-import path, { resolve } from "node:path";
+import path from "node:path";
 import { constants, brotliCompress, gzip } from "node:zlib";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { defineConfig, loadEnv } from "vite";
 import type { Connect, PluginOption } from "vite";
-import tsconfigPaths from "vite-tsconfig-paths";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 
 const gzipPromise = promisify(gzip);
@@ -186,12 +185,14 @@ export default defineConfig(async ({ mode, command }) => {
     define: {
       __DEV_WORKTREE_LABEL__: JSON.stringify(devWorktreeLabel),
     },
+    resolve: {
+      alias: {
+        "@app": path.resolve(__dirname, "src"),
+      },
+    },
     plugins: [
       react(),
       ...(runSubpath ? [subpathBareRedirectPlugin(runSubpath)] : []),
-      tsconfigPaths({
-        projects: ["./tsconfig.json"],
-      }),
       compression({
         threshold: 1024,
         exclude: [/\.(png|jpg|jpeg|gif|webp|woff|woff2)$/],

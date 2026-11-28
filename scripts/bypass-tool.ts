@@ -1,5 +1,5 @@
 // scripts/bypass-tool.ts
-import { glob } from "glob";
+import { glob } from "node:fs/promises";
 import * as fs from "fs";
 
 function findParamsTypeName(original: string): string | null {
@@ -116,7 +116,9 @@ function capitalize(s: string): string {
 async function main() {
   const testFileOnly = process.argv[2];
   const pattern = testFileOnly || "src/hooks/tools/**/use*Operation.ts";
-  const files = await glob(pattern, { ignore: ["**/node_modules/**"] });
+  const files = await Array.fromAsync(
+    glob(pattern, { exclude: ["**/node_modules/**"] }),
+  );
 
   console.log(`Encontrados ${files.length} arquivo(s)`);
   const skipped: string[] = [];

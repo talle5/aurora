@@ -9,7 +9,7 @@ import type { LogoVariant } from "@app/services/preferencesService";
  * This ensures that when useLogoAssets returns paths, those files actually exist.
  */
 describe("useLogoAssets - Logo Asset Files", () => {
-  const publicDir = path.resolve(__dirname, "../../../public");
+  const publicDir = path.resolve(__dirname, "../public");
   // Brand logo assets live in core; the editor's vite config copies
   // core/assets/brand/<folder>/* into the served root at build time (see
   // viteStaticCopy in editor/vite.config.ts), so useLogoAssets can keep
