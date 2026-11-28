@@ -1,0 +1,32 @@
+import { useTranslation } from "react-i18next";
+import { useToolOperation } from "@app/hooks/tools/shared/useToolOperation";
+import { createStandardErrorHandler } from "@app/utils/toolErrorHandler";
+import { CustomProcessorResult, defineCustomTool } from "@app/tools/shared/toolOperationTypes";
+import { AddAttachmentsParameters } from "@app/hooks/tools/addAttachments/useAddAttachmentsParameters";
+
+// BYPASS: operação ainda não portada para o motor local (WASM).
+// Devolve o arquivo original sem alteração, só pra não quebrar o fluxo da UI.
+const customProcessor = async (
+  _parameters: AddAttachmentsParameters,
+  files: File[],
+): Promise<CustomProcessorResult> => {
+  console.warn('[addAttachments] operação ainda não implementada localmente — bypass ativo, arquivo devolvido sem alteração');
+  return { files, consumedAllInputs: true };
+};
+
+export const addAttachmentsOperationConfig = defineCustomTool({
+  customProcessor,
+  operationType: "addAttachments",
+  filePrefix: "addAttachments_",
+});
+
+export const useAddAttachmentsOperation = () => {
+  const { t } = useTranslation();
+
+  return useToolOperation<AddAttachmentsParameters>({
+    ...addAttachmentsOperationConfig,
+    getErrorMessage: createStandardErrorHandler(
+      t("addAttachments.error.failed", "An error occurred while adding attachments to the PDF."),
+    ),
+  });
+};
