@@ -6,7 +6,7 @@ Editor e suíte de ferramentas PDF **100% client-side**, construído sobre a bas
 
 ## Visão Geral
 
-O **Aurora** elimina a dependência de um backend Java/Spring tradicional para operações de PDF, movendo o processamento para o cliente através de um módulo Go compilado para WebAssembly (`pdfcpu-merge.wasm`) e integrado ao frontend React por uma camada de comunicação binária em [`src/brain/`](src/brain/).
+O **Aurora** elimina a dependência de um backend Java/Spring tradicional para operações de PDF, movendo o processamento para o cliente através de um módulo Go compilado para WebAssembly (`pdfcpu.wasm`) e integrado ao frontend React por uma camada de comunicação binária em [`src/brain/`](src/brain/).
 
 ### Principais características
 
@@ -58,7 +58,7 @@ As operações abaixo são expostas dinamicamente pelo manifesto do módulo Go (
 ```text
 aurora/
 ├── docs/                       # Guias de arquitetura e documentação (DeveloperGuide.md)
-├── pdfcpu-wasm/                # Módulo Go/WASM do pdfcpu (fonte + pdfcpu-merge.wasm + wasm_exec.js)
+├── pdfcpu-wasm/                # Módulo Go/WASM do pdfcpu (fonte + pdfcpu.wasm + wasm_exec.js)
 ├── public/                     # Assets estáticos, locales, samples e vendor
 ├── scripts/                    # Scripts auxiliares (ícones, licenças, OG, lint de tema)
 ├── src/
@@ -134,11 +134,26 @@ Para subir o servidor de desenvolvimento Vite (os arquivos de `pdfcpu-wasm/` sã
 npm run dev
 ```
 
-Para recompilar o binário Go WebAssembly (`pdfcpu-wasm/pdfcpu-merge.wasm`):
+Para recompilar o binário Go WebAssembly (`pdfcpu-wasm/pdfcpu.wasm`):
 
 ```bash
 npm run wasm:build
 ```
+
+### Release do WebAssembly e uso como CDN
+
+O workflow [`.github/workflows/release-wasm.yml`](.github/workflows/release-wasm.yml) compila o módulo Go WASM e publica `pdfcpu.wasm`, `pdfcpu.wasm.gz`, `pdfcpu.wasm.br`, `wasm_exec.js`, `manifest.json` e `SHA256SUMS.txt` nas **GitHub Releases**:
+
+- **Release versionada (recomendado para cache imutável)**: `git tag wasm-v1.0.0 && git push origin wasm-v1.0.0`
+- **Release contínua (`wasm-latest`)**: automática em pushes para `main` que alteram `pdfcpu-wasm/**` (ou manualmente via **Actions → Build & Release WebAssembly → Run workflow**).
+
+Para apontar o frontend para uma CDN externa no build/dev, defina:
+
+```bash
+VITE_WASM_BASE_URL=https://sua-cdn.exemplo.com/wasm/wasm-v1.0.0
+```
+
+> **Atenção sobre CORS**: os downloads diretos de GitHub Releases (`objects.githubusercontent.com`) não enviam o cabeçalho `Access-Control-Allow-Origin: *` exigido pelo `fetch()` dos navegadores. Para usar os assets da Release diretamente no browser como CDN, coloque um proxy/worker com CORS na frente (por exemplo, um Cloudflare Worker fazendo proxy de `/releases/download/...`) ou espelhe os artefatos em GitHub Pages / Cloudflare R2.
 
 ### Build de Produção
 

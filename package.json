@@ -74,7 +74,7 @@
     "generate:icons": "node scripts/generate-icons.js",
     "generate:og": "node scripts/generate-og-metadata.mjs",
     "generate:licenses": "node scripts/generate-licenses.js",
-    "wasm:build": "cd pdfcpu-wasm && GOOS=js GOARCH=wasm go build -o pdfcpu-merge.wasm ./cmd/wasm",
+    "wasm:build": "cd pdfcpu-wasm && GOOS=js GOARCH=wasm go build -trimpath -ldflags=\"-s -w\" -o pdfcpu.wasm ./cmd/wasm",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build"
   },

@@ -31,7 +31,7 @@ export async function loadPdfCpu(): Promise<PdfEngine> {
     return engineInstance;
   }
 
-  await initWasmModule("pdfcpu-merge.wasm");
+  await initWasmModule("pdfcpu.wasm");
   await waitForGlobalFunction("pdfcpuGetManifest");
 
   const manifest = (globalThis as any).pdfcpuGetManifest() as Record<string, number>;

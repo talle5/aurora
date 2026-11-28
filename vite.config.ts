@@ -251,7 +251,7 @@ export default defineConfig(async ({ mode, command }) => {
             dest: "modern-logo",
           },
           {
-            src: "pdfcpu-wasm/pdfcpu-merge.wasm",
+            src: "pdfcpu-wasm/pdfcpu.wasm",
             dest: "wasm",
           },
           {

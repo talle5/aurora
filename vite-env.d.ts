@@ -3,6 +3,8 @@
 interface ImportMetaEnv {
   // Used by all builds (.env)
   readonly VITE_API_BASE_URL: string;
+  /** Optional CDN base URL (e.g. https://cdn.example.com/wasm/v1.0.0) overriding `${BASE_PATH}/wasm`. */
+  readonly VITE_WASM_BASE_URL?: string;
   /** "true" includes the admin portal's lazy route/chunk in the editor build. */
   readonly VITE_INCLUDE_PORTAL: string;
   readonly VITE_GOOGLE_DRIVE_CLIENT_ID: string;

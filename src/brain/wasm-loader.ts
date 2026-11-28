@@ -8,6 +8,9 @@ function loadScript(url: string): Promise<void> {
       return;
     }
     const script = document.createElement("script");
+    if (new URL(url, window.location.href).origin !== window.location.origin) {
+      script.crossOrigin = "anonymous";
+    }
     script.src = url;
     script.onload = () => resolve();
     script.onerror = (err) => reject(err);
@@ -41,8 +44,10 @@ export async function initWasmModule(wasmFileName: string): Promise<void> {
   }
 
   const origin = window.location.origin;
-  const wasmExecUrl = `${origin}${BASE_PATH}/wasm/wasm_exec.js`;
-  const wasmUrl = `${origin}${BASE_PATH}/wasm/${wasmFileName}`;
+  const cdnBase = import.meta.env.VITE_WASM_BASE_URL?.trim().replace(/\/+$/, "");
+  const wasmBaseUrl = cdnBase || `${origin}${BASE_PATH}/wasm`;
+  const wasmExecUrl = `${wasmBaseUrl}/wasm_exec.js`;
+  const wasmUrl = `${wasmBaseUrl}/${wasmFileName}`;
 
   if (!(globalThis as any).Go) {
     await loadScript(wasmExecUrl);

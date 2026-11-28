@@ -1,0 +1,212 @@
+name: Build & Release WebAssembly
+
+on:
+  push:
+    tags:
+      - "wasm-v*"
+    branches:
+      - main
+    paths:
+      - "pdfcpu-wasm/**"
+      - ".github/workflows/release-wasm.yml"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag da release (ex: wasm-v1.0.0). Deixe vazio para atualizar wasm-latest."
+        required: false
+        default: ""
+        type: string
+      prerelease:
+        description: "Marcar release como pre-release"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-wasm-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: pdfcpu-wasm/go.mod
+          cache-dependency-path: pdfcpu-wasm/go.sum
+
+      - name: Determine release metadata
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ inputs.tag }}" ]]; then
+            TAG="${{ inputs.tag }}"
+          elif [[ "${{ github.ref_type }}" == "tag" ]]; then
+            TAG="${{ github.ref_name }}"
+          else
+            TAG="wasm-latest"
+          fi
+
+          if [[ "$TAG" == "wasm-latest" ]]; then
+            IS_ROLLING="true"
+          else
+            IS_ROLLING="false"
+          fi
+
+          GO_VERSION="$(go version | awk '{print $3}')"
+          {
+            echo "tag=$TAG"
+            echo "is_rolling=$IS_ROLLING"
+            echo "go_version=$GO_VERSION"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build WebAssembly module
+        working-directory: pdfcpu-wasm
+        run: |
+          set -euo pipefail
+          GOOS=js GOARCH=wasm go vet ./cmd/wasm
+
+          OUT_DIR="$GITHUB_WORKSPACE/wasm-dist"
+          mkdir -p "$OUT_DIR"
+
+          GOOS=js GOARCH=wasm go build \
+            -trimpath \
+            -ldflags="-s -w" \
+            -o "$OUT_DIR/pdfcpu.wasm" \
+            ./cmd/wasm
+
+          GOROOT="$(go env GOROOT)"
+          if [[ -f "$GOROOT/lib/wasm/wasm_exec.js" ]]; then
+            cp "$GOROOT/lib/wasm/wasm_exec.js" "$OUT_DIR/wasm_exec.js"
+          elif [[ -f "$GOROOT/misc/wasm/wasm_exec.js" ]]; then
+            cp "$GOROOT/misc/wasm/wasm_exec.js" "$OUT_DIR/wasm_exec.js"
+          else
+            echo "::error::wasm_exec.js not found in GOROOT=$GOROOT"
+            exit 1
+          fi
+
+      - name: Compress and generate CDN manifest
+        working-directory: ${{ github.workspace }}/wasm-dist
+        run: |
+          set -euo pipefail
+          if ! command -v brotli >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq brotli
+          fi
+
+          gzip -9 -k -f pdfcpu.wasm
+          brotli -q 11 -k -f pdfcpu.wasm
+
+          sha256sum \
+            pdfcpu.wasm \
+            pdfcpu.wasm.gz \
+            pdfcpu.wasm.br \
+            wasm_exec.js > SHA256SUMS.txt
+
+          node -e '
+            const fs = require("node:fs");
+            const crypto = require("node:crypto");
+            const files = [
+              "pdfcpu.wasm",
+              "pdfcpu.wasm.gz",
+              "pdfcpu.wasm.br",
+              "wasm_exec.js",
+            ];
+            const assets = {};
+            for (const f of files) {
+              const buf = fs.readFileSync(f);
+              assets[f] = {
+                size: buf.length,
+                sha256: crypto.createHash("sha256").update(buf).digest("hex"),
+              };
+            }
+            const manifest = {
+              tag: process.env.RELEASE_TAG,
+              commit: process.env.GITHUB_SHA,
+              goVersion: process.env.GO_VERSION,
+              builtAt: new Date().toISOString(),
+              assets,
+            };
+            fs.writeFileSync("manifest.json", JSON.stringify(manifest, null, 2) + "\n");
+          '
+        env:
+          RELEASE_TAG: ${{ steps.meta.outputs.tag }}
+          GO_VERSION: ${{ steps.meta.outputs.go_version }}
+
+      - name: Publish GitHub Release
+        working-directory: ${{ github.workspace }}/wasm-dist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.meta.outputs.tag }}
+          IS_ROLLING: ${{ steps.meta.outputs.is_rolling }}
+          GO_VERSION: ${{ steps.meta.outputs.go_version }}
+          PRERELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease || false }}
+        run: |
+          set -euo pipefail
+          REPO="${{ github.repository }}"
+          BASE_URL="https://github.com/${REPO}/releases/download/${TAG}"
+
+          if [[ "$IS_ROLLING" == "true" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -f "$TAG" "$GITHUB_SHA"
+            git push -f origin "refs/tags/$TAG"
+          fi
+
+          RAW_SIZE=$(du -h pdfcpu.wasm | cut -f1)
+          GZ_SIZE=$(du -h pdfcpu.wasm.gz | cut -f1)
+          BR_SIZE=$(du -h pdfcpu.wasm.br | cut -f1)
+
+          cat > /tmp/release-notes.md <<EOF
+          ## Aurora WebAssembly (\`${TAG}\`)
+
+          - **Commit**: \`${GITHUB_SHA}\`
+          - **Go**: \`${GO_VERSION}\`
+
+          ### Artefatos para CDN
+          | Arquivo | Tamanho | URL Direta |
+          | --- | --- | --- |
+          | \`pdfcpu.wasm\` | ${RAW_SIZE} | ${BASE_URL}/pdfcpu.wasm |
+          | \`pdfcpu.wasm.gz\` | ${GZ_SIZE} | ${BASE_URL}/pdfcpu.wasm.gz |
+          | \`pdfcpu.wasm.br\` | ${BR_SIZE} | ${BASE_URL}/pdfcpu.wasm.br |
+          | \`wasm_exec.js\` | - | ${BASE_URL}/wasm_exec.js |
+          | \`manifest.json\` | - | ${BASE_URL}/manifest.json |
+          | \`SHA256SUMS.txt\` | - | ${BASE_URL}/SHA256SUMS.txt |
+
+          > **Nota de CORS**: \`github.com/.../releases/download\` redireciona para \`objects.githubusercontent.com\`, que não envia \`Access-Control-Allow-Origin: *\` para \`fetch()\` em browsers. Para servir diretamente como CDN no navegador, coloque um proxy/worker com CORS na frente (ex.: Cloudflare Worker) ou espelhe os artefatos em GitHub Pages / R2 e aponte \`VITE_WASM_BASE_URL\`.
+
+          ### SHA-256
+          \`\`\`
+          $(cat SHA256SUMS.txt)
+          \`\`\`
+          EOF
+
+          ASSETS=(
+            pdfcpu.wasm
+            pdfcpu.wasm.gz
+            pdfcpu.wasm.br
+            wasm_exec.js
+            manifest.json
+            SHA256SUMS.txt
+          )
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "${ASSETS[@]}" --clobber
+            gh release edit "$TAG" --title "WASM ${TAG}" --notes-file /tmp/release-notes.md
+          else
+            FLAGS=(--title "WASM ${TAG}" --notes-file /tmp/release-notes.md)
+            if [[ "$PRERELEASE" == "true" ]]; then
+              FLAGS+=(--prerelease)
+            fi
+            gh release create "$TAG" "${ASSETS[@]}" "${FLAGS[@]}"
+          fi
