@@ -101,23 +101,17 @@ aurora/
 ### Pré-requisitos
 
 - **Node.js** (compatível com Vite 7 / TypeScript) e **npm**
-- **Git** (para clonar o submódulo `pdfcpu-wasm`, caso vá recompilar o WASM)
+- **Git**
 - **Go** *(opcional, apenas para recompilar o módulo `pdfcpu-wasm`)*
 - **Rust / Cargo** *(opcional, apenas para builds desktop com Tauri)*
 
 ### Instalação
 
-1. Clone o repositório com seus submódulos:
+1. Clone o repositório:
 
    ```bash
-   git clone --recurse-submodules https://github.com/talle5/aurora.git
+   git clone https://github.com/talle5/aurora.git
    cd aurora
-   ```
-
-   Se já clonou sem os submódulos, inicialize-os com:
-
-   ```bash
-   git submodule update --init --recursive
    ```
 
 2. Instale as dependências Node na raiz do repositório:

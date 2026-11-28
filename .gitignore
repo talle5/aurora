@@ -30,4 +30,4 @@ test-results
 /src/assets/material-symbols-icons.d.ts
 
 .vscode/launch.json
-/pdfcpu-wasm/tinygo
+/pdfcpu-wasm/*.wasm
